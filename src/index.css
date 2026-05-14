@@ -1,0 +1,54 @@
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+  --font-headline: "Bricolage Grotesque", sans-serif;
+
+  --color-background: #fcf8f9;
+  --color-surface: #fcf8f9;
+  --color-on-background: #1b1b1c;
+  --color-primary: #b61722;
+  --color-secondary: #795900;
+  --color-tertiary: #0058be;
+  --color-secondary-container: #ffc329;
+}
+
+@layer base {
+  body {
+    @apply bg-background text-on-background antialiased;
+    background-image: radial-gradient(#e4beba 1px, transparent 1px);
+    background-size: 8px 8px;
+  }
+}
+
+@layer components {
+  .comic-border {
+    @apply border-4 border-on-background transition-all duration-200;
+    box-shadow: 6px 6px 0px 0px #1b1b1c;
+  }
+
+  .comic-border:hover {
+    @apply -translate-x-0.5 -translate-y-0.5 scale-[1.01];
+    box-shadow: 8px 8px 0px 0px #1b1b1c;
+  }
+
+  .comic-border-primary {
+    @apply border-4 border-on-background transition-all duration-200;
+    box-shadow: 6px 6px 0px 0px #b61722;
+  }
+
+  .comic-border-primary:hover {
+    @apply -translate-x-0.5 -translate-y-0.5 scale-[1.01];
+    box-shadow: 8px 8px 0px 0px #b61722;
+  }
+
+  .halftone-bg {
+    background-image: radial-gradient(#1b1b1c 1px, transparent 1px);
+    background-size: 4px 4px;
+  }
+
+  .starburst {
+    clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+  }
+}
