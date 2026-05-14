@@ -6,5 +6,6 @@ export interface Project {
   status: 'published' | 'draft';
   link_url?: string;
   category?: string;
+  size?: 'square' | 'large' | 'tall' | 'wide';
   created_at: string;
 }

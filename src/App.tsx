@@ -9,18 +9,23 @@ import Home from './pages/Home';
 import Work from './pages/Work';
 import About from './pages/About';
 import Admin from './pages/Admin';
+import Login from './pages/Login';
 
 export default function App() {
   return (
     <Router>
-      <Layout>
-        <Routes>
+      <Routes>
+        {/* Pages with navigation header/footer */}
+        <Route element={<Layout />}>
           <Route path="/" element={<Home />} />
           <Route path="/work" element={<Work />} />
           <Route path="/about" element={<About />} />
-          <Route path="/admin" element={<Admin />} />
-        </Routes>
-      </Layout>
+        </Route>
+
+        {/* Minimal/Standalone pages */}
+        <Route path="/admin" element={<Admin />} />
+        <Route path="/login" element={<Login />} />
+      </Routes>
     </Router>
   );
 }

@@ -40,12 +40,13 @@ export default function About() {
             <p className="flex-1 bg-background p-4 border-l-4 border-black italic font-medium">
               I bridge the gap between aesthetics and sales. With experience in marketing, I don't just design websites—I build tools that help businesses and creators establish a strong online presence.
             </p>
-            <div className="w-full md:w-1/2 aspect-video bg-background border-4 border-black relative overflow-hidden group-hover:scale-105 transition-transform">
+            <div className="w-full md:w-1/2 aspect-square bg-background border-4 border-black relative overflow-hidden group-hover:scale-105 transition-transform">
               <img 
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuCD2Yb_sslsQ7SG4pzc514ENwCzlc5VLN11IVLdqpK7wn3ze3_FxiuOqDMvbJlDR_6QWkKV5ja7QcW17LZKi55GsEnOnegmuG1Y_fPPo-8FoJ8xEuiVNovVXxf85UYa9Y6sQ-Itj0_nRkZgG7yvEtkG4Sr5C8_b6mA25ycRiKCHubeb6F1p8r8nCfbs7QczFX36O3CAhUYIa0yfvYt1ArY84-_kV176tlJ1k9tlSVt2WHq6Z7z2cLUgGKbxZDaBeV8OD3XSUhjSZdsg" 
-                className="object-cover w-full h-full grayscale group-hover:grayscale-0 transition-all duration-300"
-                alt="Retro desk"
+                src="https://artifact.stately.ai/b798ab49-233f-41e4-ae83-f8c553e1aa7a/input_file_0.png" 
+                className="object-cover w-full h-full filter contrast-125 grayscale hover:grayscale-0 transition-all duration-500"
+                alt="Dipanjan"
               />
+              <div className="absolute inset-0 bg-halftone-pattern opacity-40 mix-blend-multiply pointer-events-none" />
             </div>
           </div>
         </section>

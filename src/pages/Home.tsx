@@ -26,7 +26,7 @@ export default function Home() {
         </motion.div>
 
         <div className="flex flex-col md:flex-row items-center gap-12 relative z-20">
-          <div className="flex-1 space-y-6">
+          <div className="flex-1 space-y-6 order-2 md:order-1">
             <h1 className="font-black text-5xl md:text-7xl text-on-background uppercase bg-background inline-block px-4 py-2 comic-border rotate-[2deg] hover:rotate-[0deg] transition-transform">
               HELLO! I'M DIPANJAN
             </h1>
@@ -39,12 +39,12 @@ export default function Home() {
             </Link>
           </div>
           
-          <div className="flex-shrink-0 relative">
+          <div className="flex-shrink-0 relative order-1 md:order-2">
             <div className="w-64 h-64 md:w-80 md:h-80 bg-tertiary-container comic-border-primary rounded-full overflow-hidden relative group/avatar">
               <img 
                 alt="Profile" 
-                className="w-full h-full object-cover filter grayscale contrast-125 mix-blend-luminosity group-hover/avatar:grayscale-0 group-hover/avatar:scale-105 transition-all duration-500"
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuBRdaCbyYApekdQjB1da06oeawe7jOS56eTb096BbZzEWV5V_kSvSbgNWTAAP0d7YIfDsLr3vNT3QkzkgtR8h8vPN7JJKgBaA0dXJv1b9DP8zEi9zGF71uxcfcS2mXOdUE62Z7k6wvOf1YRuAAfXjz9TRnWjDs5weViaB3ohJRq6HBwSRh-aBRwDGFlrYrzDup7kdf9w_4QPFvKKRjpucb8H9Um_aXw7reXGrjUiO6BfV9CZHntHQN19LjJy4Ew3jGV0z_mecSfl4BR" 
+                className="w-full h-full object-cover filter contrast-125 group-hover/avatar:scale-105 transition-all duration-500"
+                src="https://artifact.stately.ai/b798ab49-233f-41e4-ae83-f8c553e1aa7a/input_file_0.png" 
               />
             </div>
             <div className="absolute -inset-4 border-4 border-on-background rounded-full border-dashed animate-[spin_10s_linear_infinite] pointer-events-none group-hover:border-primary transition-colors" />

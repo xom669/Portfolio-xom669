@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Project } from '../types';
 import { LayoutDashboard, Palette, CloudUpload, Settings, HelpCircle, LogOut, Search, PlusCircle, Link as LinkIcon, Edit3 } from 'lucide-react';
@@ -14,56 +15,97 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-const DEFAULT_PROJECTS: Project[] = [
-  {
-    id: '1',
-    title: 'Cyber City',
-    description: 'Initial sketches for the neon district environment design.',
-    image_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDZ8nTvJxrMBJkcDRo14AChsaMp84UQbDfZC8dY8FXCBqGHrGwCyymDoBA3d5yv4N7aZoyIFNNJJJGyewB95EkOtEO3QsB2dpW-OMeQ03DGniiVbRdVta0WZN_LT9e2CcFjMKXXEUYqLbTCeuNJi3JGg8iyc6RAyzA7r3M7tI5Et-mQbBPE0byx-khAebjOUqPfkTObmH_AgMedIsm0uZBZc06BpsY8_Y8KdYmtKgzOUbw6ZX7HQAYYzv1VtqRLPo5xQk1mPo33uqdv',
-    status: 'published',
-    link_url: '/gallery/cyber-city',
-    created_at: new Date().toISOString()
-  },
-  {
-    id: '2',
-    title: 'Rage Series',
-    description: 'Exploring emotional texture through aggressive brushwork.',
-    image_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA5NsE03dfvXJMGK_LlrOscn-dkm4nMWEbVLM0Ruq2VaNxEXxKh-0bQKxy0bRXRGxYi36vEwrSuF1cT8uQT8TOLVZaqaIdHv4aGotjvDglQf9krvVtl4h3dgvhYfu1RO9o1QwRXx6KcrKJJ_zdSYbQTa769_fk2r4DFTJZRV-KQG39ti5AUNUKTccb4pFNxJ2GEl9MHuEk2P4z4Z-yuCpud1aUHmOF2YpBeKxKhyonYZWw4_8eFmplalXraRKcsr1untZV8ERzTCUTp',
-    status: 'draft',
-    created_at: new Date().toISOString()
-  }
-];
-
 export default function Admin() {
-  const [projects, setProjects] = useState<Project[]>(DEFAULT_PROJECTS);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAdding, setIsAdding] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const navigate = useNavigate();
+  const [newProject, setNewProject] = useState({
+    title: '',
+    description: '',
+    image_url: '',
+    status: 'published' as const,
+    link_url: '',
+    size: 'square'
+  });
 
   useEffect(() => {
-    async function fetchProjects() {
-      try {
-        const { data, error } = await supabase.from('projects').select('*').order('created_at', { ascending: false });
-        if (data && data.length > 0) {
-          setProjects(data);
-        }
-      } catch (err) {
-        console.error('Failed to fetch from Supabase, using defaults', err);
-      } finally {
-        setLoading(false);
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        navigate('/login');
+      } else {
+        setUser(session.user);
+        fetchProjects();
       }
+    };
+    checkAuth();
+  }, [navigate]);
+
+  const fetchProjects = async () => {
+    try {
+      const { data, error } = await supabase.from('projects').select('*').order('created_at', { ascending: false });
+      if (data) {
+        setProjects(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch from Supabase', err);
+    } finally {
+      setLoading(false);
     }
-    fetchProjects();
-  }, []);
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate('/login');
+  };
+
+  const handleAddProject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const { error } = await supabase.from('projects').insert([
+        { 
+          ...newProject, 
+          created_at: new Date().toISOString() 
+        }
+      ]);
+      
+      if (error) throw error;
+      
+      setIsAdding(false);
+      setNewProject({
+        title: '',
+        description: '',
+        image_url: '',
+        status: 'published',
+        link_url: '',
+        size: 'square'
+      });
+      fetchProjects();
+      alert('Project added successfully!');
+    } catch (err: any) {
+      console.error('Error adding project:', err);
+      alert('Failed to add project. Make sure your Supabase RLS policies allow inserts.\n\nError: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="flex bg-halftone min-h-screen">
-      {/* Sidebar */}
+      {/* Sidebar (same as before) */}
       <aside className="hidden md:flex h-screen w-72 flex-col fixed left-0 top-0 bg-surface border-r-4 border-on-background shadow-[6px_0px_0px_0px_rgba(27,27,28,1)] gap-6 p-8 z-40">
         <div className="mb-8">
           <h1 className="font-black text-3xl text-primary uppercase">Studio Admin</h1>
-          <p className="font-bold text-xs opacity-50 mt-2">V1.0.4</p>
+          <p className="font-bold text-xs opacity-50 mt-2">V1.0.5</p>
         </div>
 
-        <button className="bg-primary text-white font-bold uppercase py-4 px-6 comic-border active:translate-x-[4px] active:translate-y-[4px] active:shadow-none mb-6">
+        <button 
+          onClick={() => setIsAdding(true)}
+          className="bg-primary text-white font-bold uppercase py-4 px-6 comic-border active:translate-x-[4px] active:translate-y-[4px] active:shadow-none mb-6"
+        >
           New Project
         </button>
 
@@ -86,7 +128,10 @@ export default function Admin() {
           <button className="flex items-center gap-4 p-3 font-bold hover:text-primary transition-colors">
             <HelpCircle size={20} /> Help
           </button>
-          <button className="flex items-center gap-4 p-3 font-bold hover:text-primary transition-colors">
+          <button 
+            onClick={handleLogout}
+            className="flex items-center gap-4 p-3 font-bold hover:text-primary transition-colors"
+          >
             <LogOut size={20} /> Logout
           </button>
         </div>
@@ -98,14 +143,102 @@ export default function Admin() {
         <div className="bg-background p-8 comic-border flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-12 rotate-[-0.5deg]">
           <div>
             <h2 className="font-black text-5xl uppercase tracking-tighter">Projects</h2>
-            <p className="max-w-xl mt-2 border-l-4 border-primary pl-4">Manage your active sketchbook panels and set destination links.</p>
+            <p className="max-w-xl mt-2 border-l-4 border-primary pl-4">Manage your active sketchbook panels. Real-time sync with Supabase enabled.</p>
           </div>
-          <button className="bg-primary text-white font-bold uppercase py-4 px-8 comic-border hover:bg-primary/90 active:translate-x-[4px] active:translate-y-[4px] active:shadow-none rotate-[1deg] flex items-center gap-2">
+          <button 
+            onClick={() => setIsAdding(true)}
+            className="bg-primary text-white font-bold uppercase py-4 px-8 comic-border hover:bg-primary/90 active:translate-x-[4px] active:translate-y-[4px] active:shadow-none rotate-[1deg] flex items-center gap-2"
+          >
             <PlusCircle size={20} /> New Content
           </button>
         </div>
 
-        {/* Toolbar */}
+        {/* Add Project Form Modal */}
+        {isAdding && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-on-background/50 backdrop-blur-sm">
+            <div className="bg-background comic-border w-full max-w-2xl p-8 max-h-[90vh] overflow-y-auto">
+              <h3 className="font-black text-3xl uppercase mb-6">Create New Panel</h3>
+              <form onSubmit={handleAddProject} className="space-y-6">
+                <div>
+                  <label className="block font-bold uppercase text-sm mb-2 text-on-background">Project Title</label>
+                  <input 
+                    required
+                    type="text" 
+                    value={newProject.title}
+                    onChange={(e) => setNewProject({...newProject, title: e.target.value})}
+                    className="w-full bg-surface border-4 border-on-background p-3 font-bold focus:shadow-[4px_4px_0px_0px_rgba(27,27,28,1)] outline-none"
+                    placeholder="E.g. Neon Streets"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold uppercase text-sm mb-2 text-on-background">Description</label>
+                  <textarea 
+                    required
+                    value={newProject.description}
+                    onChange={(e) => setNewProject({...newProject, description: e.target.value})}
+                    className="w-full bg-surface border-4 border-on-background p-3 font-bold focus:shadow-[4px_4px_0px_0px_rgba(27,27,28,1)] outline-none h-32"
+                    placeholder="What's the story behind this one?"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold uppercase text-sm mb-2 text-on-background">Image URL</label>
+                  <input 
+                    required
+                    type="url" 
+                    value={newProject.image_url}
+                    onChange={(e) => setNewProject({...newProject, image_url: e.target.value})}
+                    className="w-full bg-surface border-4 border-on-background p-3 font-bold focus:shadow-[4px_4px_0px_0px_rgba(27,27,28,1)] outline-none"
+                    placeholder="https://..."
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-bold uppercase text-sm mb-2 text-on-background">Panel Size</label>
+                    <select 
+                      value={newProject.size}
+                      onChange={(e) => setNewProject({...newProject, size: e.target.value})}
+                      className="w-full bg-surface border-4 border-on-background p-3 font-bold focus:shadow-[4px_4px_0px_0px_rgba(27,27,28,1)] outline-none"
+                    >
+                      <option value="square">Standard Square</option>
+                      <option value="large">Big Banner (Wide)</option>
+                      <option value="tall">Tall Comic Panel</option>
+                      <option value="wide">Full Width</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block font-bold uppercase text-sm mb-2 text-on-background">Status</label>
+                    <select 
+                      value={newProject.status}
+                      onChange={(e) => setNewProject({...newProject, status: e.target.value as any})}
+                      className="w-full bg-surface border-4 border-on-background p-3 font-bold focus:shadow-[4px_4px_0px_0px_rgba(27,27,28,1)] outline-none"
+                    >
+                      <option value="published">Published</option>
+                      <option value="draft">Draft</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="flex gap-4 pt-4">
+                  <button 
+                    type="submit"
+                    disabled={loading}
+                    className="flex-1 bg-primary text-white font-bold uppercase py-4 comic-border hover:bg-primary/90 disabled:opacity-50"
+                  >
+                    {loading ? 'Adding...' : 'Add to Sketchbook'}
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => setIsAdding(false)}
+                    className="bg-background text-on-background font-bold uppercase py-4 px-8 comic-border hover:bg-surface"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Toolbar (same as before) */}
         <div className="flex flex-wrap gap-4 mb-8">
           <div className="relative flex-1 min-w-[250px]">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-on-background" size={20} />

@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, Outlet } from 'react-router-dom';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -12,7 +12,7 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function Layout({ children }: { children: React.ReactNode }) {
+export function Layout() {
   const location = useLocation();
 
   const navLinks = [
@@ -51,7 +51,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </header>
 
       <main className="flex-grow">
-        {children}
+        <Outlet />
       </main>
 
       <footer className="bg-surface border-t-4 border-primary mt-20 px-8 md:px-12 py-12 flex flex-col md:flex-row justify-between items-center gap-6">
