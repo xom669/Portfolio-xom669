@@ -3,11 +3,26 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { Search, Code, Brush, Zap } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { Profile } from '../types';
 
 export default function About() {
+  const [profile, setProfile] = useState<Profile | null>(null);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const { data } = await supabase.from('profiles').select('*').limit(1).single();
+      if (data) setProfile(data);
+    };
+    fetchProfile();
+  }, []);
+
+  const bio = profile?.bio || "Based in Kolkata, I'm a 19-year-old designer fueled by Adobe Photoshop, Illustrator, and clean code. I specialize in branding, UI concepts, and custom web projects that help startups stand out.";
+  const pfp = profile?.pfp_url || 'https://artifact.stately.ai/b798ab49-233f-41e4-ae83-f8c553e1aa7a/input_file_0.png';
+
   return (
     <div className="p-8 md:p-12 max-w-7xl mx-auto w-full flex flex-col gap-12">
       {/* Header Panel */}
@@ -25,7 +40,7 @@ export default function About() {
           </h1>
           
           <p className="max-w-2xl bg-background text-on-background p-6 comic-border rotate-1 mt-4">
-            Based in Kolkata, I'm a 19-year-old designer fueled by Adobe Photoshop, Illustrator, and clean code. I specialize in branding, UI concepts, and custom web projects that help startups stand out.
+            {bio}
           </p>
         </div>
       </header>
@@ -42,9 +57,9 @@ export default function About() {
             </p>
             <div className="w-full md:w-1/2 aspect-square bg-background border-4 border-black relative overflow-hidden group-hover:scale-105 transition-transform">
               <img 
-                src="https://artifact.stately.ai/b798ab49-233f-41e4-ae83-f8c553e1aa7a/input_file_0.png" 
+                src={pfp} 
                 className="object-cover w-full h-full filter contrast-125 grayscale hover:grayscale-0 transition-all duration-500"
-                alt="Dipanjan"
+                alt="Profile"
               />
               <div className="absolute inset-0 bg-halftone-pattern opacity-40 mix-blend-multiply pointer-events-none" />
             </div>

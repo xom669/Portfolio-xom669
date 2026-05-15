@@ -5,6 +5,7 @@
 
 import React from 'react';
 import { Link, useLocation, Outlet } from 'react-router-dom';
+import { motion } from 'motion/react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -23,30 +24,44 @@ export function Layout() {
 
   return (
     <div className="min-h-screen flex flex-col font-sans">
-      <header className="bg-background text-primary w-full sticky top-0 z-50 border-b-4 border-primary shadow-[8px_8px_0px_0px_rgba(27,27,28,1)] flex justify-between items-center px-8 md:px-12 py-6">
-        <Link to="/" className="font-headline text-2xl md:text-3xl uppercase italic text-on-background hover:rotate-[-2deg] transition-transform whitespace-nowrap">
-          ( xom669 | Dipanjan )
-        </Link>
-        <nav className="hidden md:flex gap-8 items-center font-bold uppercase">
-          {navLinks.map((link) => (
-            <Link
-              key={link.path}
-              to={link.path}
-              className={cn(
-                "transition-all duration-150 hover:scale-110 hover:skew-x-2",
-                location.pathname === link.path
-                  ? "text-secondary underline decoration-4 underline-offset-8"
-                  : "text-on-background hover:text-secondary"
-              )}
-            >
-              {link.name}
-            </Link>
-          ))}
-        </nav>
-        <div className="flex items-center gap-4">
-          <Link to="/admin" className="text-on-background hover:text-secondary transition-colors">
-            <span className="material-symbols-outlined !text-3xl">face</span>
+      <header className="bg-background text-primary w-full sticky top-0 z-50 border-b-4 border-primary shadow-[8px_8px_0px_0px_rgba(27,27,28,1)] flex flex-col">
+        <div className="flex justify-between items-center px-8 md:px-12 py-6">
+          <Link to="/" className="group flex items-center gap-2">
+            <div className="font-black text-4xl md:text-5xl tracking-tighter text-primary lowercase relative">
+              xom669
+              <motion.div 
+                className="absolute -bottom-1 left-0 h-2 bg-secondary w-0 group-hover:w-full transition-all duration-300" 
+              />
+            </div>
           </Link>
+          <nav className="hidden md:flex gap-8 items-center font-bold uppercase">
+            {navLinks.map((link) => (
+              <Link
+                key={link.path}
+                to={link.path}
+                className={cn(
+                  "transition-all duration-150 hover:scale-110 hover:skew-x-2",
+                  location.pathname === link.path
+                    ? "text-secondary underline decoration-4 underline-offset-8"
+                    : "text-on-background hover:text-secondary"
+                )}
+              >
+                {link.name}
+              </Link>
+            ))}
+          </nav>
+          <div className="flex items-center gap-4">
+            <Link to="/admin" className="text-on-background hover:text-secondary transition-colors">
+              <span className="material-symbols-outlined !text-3xl">face</span>
+            </Link>
+          </div>
+        </div>
+        
+        {/* Sub-header bar - Mobile Only */}
+        <div className="bg-primary text-white py-1 px-8 md:hidden flex justify-center gap-6 text-[10px] font-black uppercase tracking-widest border-t-2 border-on-background">
+          <Link to="/" className="hover:line-through transition-all">home</Link>
+          <Link to="/work" className="hover:line-through transition-all">works</Link>
+          <Link to="/about" className="hover:line-through transition-all">knowmore</Link>
         </div>
       </header>
 
@@ -55,8 +70,8 @@ export function Layout() {
       </main>
 
       <footer className="bg-surface border-t-4 border-primary mt-20 px-8 md:px-12 py-12 flex flex-col md:flex-row justify-between items-center gap-6">
-        <div className="font-headline text-2xl text-primary hover:rotate-[-2deg] transition-transform">
-          ( xom669 | Dipanjan )
+        <div className="font-black text-3xl text-primary lowercase">
+          xom669
         </div>
         <nav className="flex gap-6 items-center uppercase font-bold text-sm">
           <a href="https://www.linkedin.com/in/dipanjanbaidya/" target="_blank" rel="noopener noreferrer" className="text-on-background hover:line-through hover:text-secondary transition-colors">LinkedIn</a>

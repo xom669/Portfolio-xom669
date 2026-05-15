@@ -6,6 +6,20 @@ export interface Project {
   status: 'published' | 'draft';
   link_url?: string;
   category?: string;
-  size?: 'square' | 'large' | 'tall' | 'wide';
+  size: 'square' | 'large' | 'tall' | 'wide';
   created_at: string;
+}
+
+export interface Profile {
+  id: string;
+  full_name: string;
+  bio: string;
+  pfp_url: string;
+  social_links: {
+    instagram?: string;
+    twitter?: string;
+    linkedin?: string;
+    github?: string;
+  };
+  updated_at: string;
 }
