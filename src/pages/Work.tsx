@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Mail } from 'lucide-react';
+import { Mail, ExternalLink } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Project } from '../types';
 
@@ -75,9 +75,23 @@ export default function Work() {
                     project.size === 'tall' ? 'md:col-span-4 md:row-span-2' : 
                     project.size === 'wide' ? 'md:col-span-8' : 'md:col-span-4'}
                   ${idx % 2 === 0 ? 'rotate-1' : '-rotate-1'}
-                  hover:rotate-0 transition-all
+                  hover:rotate-0 transition-all hover:shadow-[8px_8px_0px_0px_rgba(27,27,28,1)]
                 `}
               >
+                {project.link_url && (
+                  <a 
+                    href={project.link_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="absolute inset-0 z-30 cursor-alias"
+                  >
+                    <div className="absolute top-4 left-4 bg-primary text-white p-2 comic-border opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2 scale-75 group-hover:scale-100 translate-y-4 group-hover:translate-y-0 duration-300">
+                      <ExternalLink size={16} />
+                      <span className="font-bold text-xs">VIEW PROJECT</span>
+                    </div>
+                  </a>
+                )}
+                
                 {project.category && (
                   <div className="absolute -top-4 -right-4 w-24 h-24 bg-primary-container starburst flex items-center justify-center comic-border rotate-[25deg] z-20 group-hover:scale-125 group-hover:rotate-45 transition-all">
                     <span className="font-bold text-white -rotate-[25deg]">{project.category}</span>

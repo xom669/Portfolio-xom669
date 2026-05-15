@@ -474,14 +474,50 @@ export default function Admin() {
                   />
                 </div>
                 <div>
-                  <label className="block font-bold uppercase text-sm mb-2 text-on-background">Image URL</label>
+                  <label className="block font-bold uppercase text-sm mb-2 text-on-background">Image URL / Upload</label>
+                  <div className="flex flex-col gap-4">
+                    <input 
+                      required
+                      type="url" 
+                      value={newProject.image_url}
+                      onChange={(e) => setNewProject({...newProject, image_url: e.target.value})}
+                      className="w-full bg-surface border-4 border-on-background p-4 font-bold focus:shadow-[4px_4px_0px_0px_rgba(27,27,28,1)] outline-none"
+                      placeholder="https://..."
+                    />
+                    <div className="relative">
+                      <input 
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            if (file.size > 2 * 1024 * 1024) {
+                              alert('File too large! Keep it under 2MB.');
+                              return;
+                            }
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              setNewProject({...newProject, image_url: reader.result as string});
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        className="absolute inset-0 opacity-0 cursor-pointer"
+                      />
+                      <div className="w-full bg-secondary-container border-4 border-dashed border-on-background p-4 font-black text-center uppercase hover:bg-secondary transition-colors">
+                        Drop / Select Panel Image
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <label className="block font-bold uppercase text-sm mb-2 text-on-background">Destination URL (Optional)</label>
                   <input 
-                    required
                     type="url" 
-                    value={newProject.image_url}
-                    onChange={(e) => setNewProject({...newProject, image_url: e.target.value})}
+                    value={newProject.link_url}
+                    onChange={(e) => setNewProject({...newProject, link_url: e.target.value})}
                     className="w-full bg-surface border-4 border-on-background p-4 font-bold focus:shadow-[4px_4px_0px_0px_rgba(27,27,28,1)] outline-none"
-                    placeholder="https://..."
+                    placeholder="https://behance.net/..."
                   />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
