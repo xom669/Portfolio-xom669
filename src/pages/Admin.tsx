@@ -6,7 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { Project, Profile } from '../types';
+import { Project, Profile, Skill } from '../types';
 import { 
   LayoutDashboard, 
   Palette, 
@@ -22,7 +22,8 @@ import {
   ExternalLink,
   Save,
   User,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Sword
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -31,16 +32,47 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-type Tab = 'dashboard' | 'projects' | 'settings';
+type Tab = 'dashboard' | 'projects' | 'settings' | 'skills';
 
 export default function Admin() {
   const [activeTab, setActiveTab] = useState<Tab>('projects');
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [projects, setProjects] = useState<any[]>([]);
+  const [skills, setSkills] = useState<any[]>([]);
+  const [profile, setProfile] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
   const [user, setUser] = useState<any>(null);
   const navigate = useNavigate();
+
+  const defaultSkills: any[] = [
+    { name: 'Adobe Photoshop', category: 'Graphic Design', enabled: true, order: 1 },
+    { name: 'Adobe Illustrator', category: 'Graphic Design', enabled: true, order: 2 },
+    { name: 'Adobe After Effects', category: 'Graphic Design', enabled: true, order: 3 },
+    { name: 'Adobe Premiere Pro', category: 'Graphic Design', enabled: true, order: 4 },
+    { name: 'Adobe Lightroom', category: 'Graphic Design', enabled: true, order: 5 },
+    { name: 'Figma', category: 'Graphic Design', enabled: true, order: 6 },
+    { name: 'Canva', category: 'Graphic Design', enabled: true, order: 7 },
+    
+    { name: 'JavaScript', category: 'Coding Languages', enabled: true, order: 8 },
+    { name: 'Python', category: 'Coding Languages', enabled: true, order: 9 },
+    { name: 'C++', category: 'Coding Languages', enabled: true, order: 10 },
+    { name: 'CSS3', category: 'Coding Languages', enabled: true, order: 11 },
+    { name: 'HTML5', category: 'Coding Languages', enabled: true, order: 12 },
+    { name: 'TypeScript', category: 'Coding Languages', enabled: true, order: 13 },
+    
+    { name: 'HTML5', category: 'Web Development', enabled: true, order: 14 },
+    { name: 'CSS3', category: 'Web Development', enabled: true, order: 15 },
+    { name: 'JavaScript', category: 'Web Development', enabled: true, order: 16 },
+    { name: 'React.js', category: 'Web Development', enabled: true, order: 17 },
+    { name: 'Next.js', category: 'Web Development', enabled: true, order: 18 },
+    { name: 'Tailwind CSS', category: 'Web Development', enabled: true, order: 19 },
+    { name: 'Node.js', category: 'Web Development', enabled: true, order: 20 },
+    { name: 'Express.js', category: 'Web Development', enabled: true, order: 21 },
+    { name: 'MongoDB', category: 'Web Development', enabled: true, order: 22 },
+    { name: 'Firebase', category: 'Web Development', enabled: true, order: 23 },
+    { name: 'Git & GitHub', category: 'Web Development', enabled: true, order: 24 },
+    { name: 'Vercel', category: 'Web Development', enabled: true, order: 25 },
+  ];
   
   const [newProject, setNewProject] = useState({
     title: '',
@@ -76,7 +108,8 @@ export default function Admin() {
     setLoading(true);
     await Promise.all([
       fetchProjects(),
-      fetchProfile(userId)
+      fetchProfile(userId),
+      fetchSkills()
     ]);
     setLoading(false);
   };
@@ -90,6 +123,45 @@ export default function Admin() {
     }
   };
 
+  const fetchSkills = async () => {
+    try {
+      const { data, error } = await supabase.from('skills').select('*').order('order', { ascending: true });
+      if (error) throw error;
+      if (data) setSkills(data);
+    } catch (err) {
+      console.error('Failed to fetch skills', err);
+    }
+  };
+
+  const handleSyncSkills = async () => {
+    if (!confirm('This will populate your skills list with defaults. Existing skills with same names will be ignored. Continue?')) return;
+    setLoading(true);
+    try {
+      // For each default skill, check if it exists, if not insert
+      for (const skill of defaultSkills) {
+        const exists = skills.find(s => s.name === skill.name);
+        if (!exists) {
+          await supabase.from('skills').insert([skill]);
+        }
+      }
+      await fetchSkills();
+      alert('Skills synchronized!');
+    } catch (err: any) {
+      alert('Sync failed: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleSkill = async (id: string, currentStatus: boolean) => {
+    try {
+      const { error } = await supabase.from('skills').update({ enabled: !currentStatus }).eq('id', id);
+      if (error) throw error;
+      fetchSkills();
+    } catch (err: any) {
+      alert('Update failed: ' + err.message);
+    }
+  };
   const fetchProfile = async (userId: string) => {
     try {
       const { data } = await supabase.from('profiles').select('*').eq('id', userId).single();
@@ -117,9 +189,21 @@ export default function Admin() {
     e.preventDefault();
     setLoading(true);
     try {
-      const { error } = await supabase.from('projects').insert([
-        { ...newProject, created_at: new Date().toISOString() }
-      ]);
+      // Constructing payload explicitly. 
+      // We omit 'size' and 'link_url' because they may be missing from your Supabase table.
+      // Run the SQL provided in the chat to add these columns, then you can uncomment them here.
+      const projectData: any = { 
+        title: newProject.title, 
+        description: newProject.description, 
+        image_url: newProject.image_url, 
+        status: newProject.status,
+        created_at: new Date().toISOString() 
+      };
+
+      // if (newProject.link_url) projectData.link_url = newProject.link_url;
+      // projectData.size = newProject.size;
+
+      const { error } = await supabase.from('projects').insert([projectData]);
       if (error) throw error;
       
       setIsAdding(false);
@@ -148,8 +232,12 @@ export default function Admin() {
     e.preventDefault();
     setLoading(true);
     try {
-      if (!user) return;
-      const { error } = await supabase.from('profiles').upsert({
+      if (!user) {
+        alert('Authentication lost. Please log in again.');
+        return;
+      }
+      
+      const profileData: any = {
         id: user.id,
         full_name: profileForm.full_name,
         bio: profileForm.bio,
@@ -159,7 +247,9 @@ export default function Admin() {
           twitter: profileForm.twitter,
         },
         updated_at: new Date().toISOString()
-      });
+      };
+
+      const { error } = await supabase.from('profiles').upsert(profileData);
       if (error) throw error;
       alert('Profile updated successfully!');
       fetchProfile(user.id);
@@ -204,6 +294,15 @@ export default function Admin() {
             )}
           >
             <Palette size={20} /> Sketchbook
+          </button>
+          <button 
+            onClick={() => setActiveTab('skills')}
+            className={cn(
+              "flex items-center gap-4 p-3 font-bold transition-all",
+              activeTab === 'skills' ? "bg-secondary-container comic-border rotate-1" : "hover:text-primary"
+            )}
+          >
+            <Sword size={20} /> Armory (Skills)
           </button>
           <button 
             onClick={() => setActiveTab('settings')}
@@ -319,6 +418,54 @@ export default function Admin() {
                   </article>
                 ))
               )}
+            </div>
+          </div>
+        )}
+
+        {/* TAB 4: SKILLS */}
+        {activeTab === 'skills' && (
+          <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="bg-background p-8 comic-border flex flex-col md:flex-row justify-between items-start md:items-end gap-6 rotate-[-0.5deg]">
+              <div>
+                <h2 className="font-black text-5xl uppercase tracking-tighter">Professional Armory</h2>
+                <p className="max-w-xl mt-2 border-l-4 border-primary pl-4 font-bold">In the brutal world of creativity, these are your weapons. Enable or disable them for the frontend.</p>
+              </div>
+              <button 
+                onClick={handleSyncSkills}
+                className="bg-secondary-container text-on-background font-bold uppercase py-4 px-8 comic-border hover:bg-secondary active:translate-x-[4px] active:translate-y-[4px] active:shadow-none rotate-[1deg] flex items-center gap-2"
+              >
+                Sync Defaults
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {['Graphic Design', 'Coding Languages', 'Web Development'].map((category) => (
+                <div key={category} className="bg-background comic-border p-6 space-y-6">
+                  <h3 className="font-black text-2xl uppercase border-b-4 border-on-background pb-2 text-primary">{category}</h3>
+                  <div className="space-y-4">
+                    {skills.filter(s => s.category === category).map((skill) => (
+                      <div key={skill.id} className="flex items-center justify-between p-3 bg-surface comic-border shadow-[4px_4px_0px_0px_rgba(27,27,28,1)]">
+                        <span className="font-bold uppercase text-sm">{skill.name}</span>
+                        <button 
+                          onClick={() => toggleSkill(skill.id, skill.enabled)}
+                          className={cn(
+                            "w-12 h-6 flex items-center p-1 rounded-full bg-surface border-2 border-on-background transition-colors",
+                            skill.enabled ? "bg-primary" : "bg-on-background/20"
+                          )}
+                        >
+                          <div className={cn(
+                            "w-3 h-3 rounded-full bg-white transition-all transform",
+                            skill.enabled ? "translate-x-6" : "translate-x-0"
+                          )} />
+                        </button>
+                      </div>
+                    ))}
+                    {skills.filter(s => s.category === category).length === 0 && (
+                      <p className="text-sm italic opacity-50 uppercase font-bold">No skills in this category.</p>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}

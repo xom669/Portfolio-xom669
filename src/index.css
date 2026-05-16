@@ -12,6 +12,12 @@
   --color-secondary: #795900;
   --color-tertiary: #0058be;
   --color-secondary-container: #ffc329;
+
+  @keyframes gradient {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
 }
 
 @layer base {
@@ -45,6 +51,11 @@
 
   .halftone-bg {
     background-image: radial-gradient(#1b1b1c 1px, transparent 1px);
+    background-size: 4px 4px;
+  }
+
+  .halftone-white-bg {
+    background-image: radial-gradient(rgba(255, 255, 255, 0.2) 1px, transparent 1px);
     background-size: 4px 4px;
   }
 

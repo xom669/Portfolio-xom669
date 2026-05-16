@@ -24,10 +24,20 @@ export function Layout() {
 
   return (
     <div className="min-h-screen flex flex-col font-sans">
-      <header className="bg-background text-primary w-full sticky top-0 z-50 border-b-4 border-primary shadow-[8px_8px_0px_0px_rgba(27,27,28,1)] flex flex-col">
-        <div className="flex justify-between items-center px-8 md:px-12 py-6">
+      <header className="relative w-full sticky top-0 z-50 border-b-4 border-primary shadow-[8px_8px_0px_0px_rgba(27,27,28,1)] flex flex-col overflow-hidden">
+        {/* Glowing Moving Gradient Background */}
+        <div className="absolute inset-0 bg-linear-to-br from-fuchsia-600 via-black to-emerald-500 bg-[length:400%_400%] animate-[gradient_15s_ease_infinite]" />
+        
+        {/* Glow Overlay */}
+        <div className="absolute inset-0 opacity-40 blur-3xl pointer-events-none">
+          <div className="absolute top-0 left-0 w-full h-full bg-linear-to-tr from-purple-500/20 to-emerald-500/20 animate-pulse" />
+        </div>
+
+        <div className="absolute inset-0 halftone-white-bg opacity-30 pointer-events-none" />
+
+        <div className="relative z-10 flex justify-between items-center px-8 md:px-12 py-6">
           <Link to="/" className="group flex items-center gap-2">
-            <div className="font-black text-4xl md:text-5xl tracking-tighter text-primary lowercase relative">
+            <div className="font-black text-4xl md:text-5xl tracking-tighter text-white lowercase relative group-hover:drop-shadow-[0_0_20px_rgba(192,38,211,0.8)] transition-all">
               xom669
               <motion.div 
                 className="absolute -bottom-1 left-0 h-2 bg-secondary w-0 group-hover:w-full transition-all duration-300" 
@@ -40,10 +50,10 @@ export function Layout() {
                 key={link.path}
                 to={link.path}
                 className={cn(
-                  "transition-all duration-150 hover:scale-110 hover:skew-x-2",
+                  "transition-all duration-150 hover:scale-110 hover:skew-x-2 hover:drop-shadow-[0_0_10px_rgba(255,255,255,0.7)]",
                   location.pathname === link.path
                     ? "text-secondary underline decoration-4 underline-offset-8"
-                    : "text-on-background hover:text-secondary"
+                    : "text-white hover:text-secondary"
                 )}
               >
                 {link.name}
@@ -51,17 +61,17 @@ export function Layout() {
             ))}
           </nav>
           <div className="flex items-center gap-4">
-            <Link to="/admin" className="text-on-background hover:text-secondary transition-colors">
+            <Link to="/admin" className="text-white hover:text-secondary hover:drop-shadow-[0_0_15px_rgba(16,185,129,0.8)] transition-all">
               <span className="material-symbols-outlined !text-3xl">face</span>
             </Link>
           </div>
         </div>
         
         {/* Sub-header bar - Mobile Only */}
-        <div className="bg-primary text-white py-1 px-8 md:hidden flex justify-center gap-6 text-[10px] font-black uppercase tracking-widest border-t-2 border-on-background">
-          <Link to="/" className="hover:line-through transition-all">home</Link>
-          <Link to="/work" className="hover:line-through transition-all">works</Link>
-          <Link to="/about" className="hover:line-through transition-all">knowmore</Link>
+        <div className="relative z-10 bg-black/40 backdrop-blur-md text-white py-2 px-8 md:hidden flex justify-center gap-8 text-xs font-black uppercase tracking-widest border-t border-white/10">
+          <Link to="/" className="hover:text-secondary transition-all">home</Link>
+          <Link to="/work" className="hover:text-secondary transition-all">works</Link>
+          <Link to="/about" className="hover:text-secondary transition-all">about</Link>
         </div>
       </header>
 

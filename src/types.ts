@@ -10,6 +10,14 @@ export interface Project {
   created_at: string;
 }
 
+export interface Skill {
+  id: string;
+  name: string;
+  category: 'Graphic Design' | 'Coding Languages' | 'Web Development';
+  enabled: boolean;
+  order?: number;
+}
+
 export interface Profile {
   id: string;
   full_name: string;
