@@ -62,4 +62,48 @@
   .starburst {
     clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
   }
+
+  @keyframes lava-lamp-glow {
+    0% { 
+      box-shadow: 6px 6px 0px 0px #00ffff, 0 0 30px rgba(0, 255, 255, 0.5); 
+      border-color: #00ffff;
+    }
+    33% { 
+      box-shadow: 6px 6px 0px 0px #ff00ff, 0 0 30px rgba(255, 0, 255, 0.5); 
+      border-color: #ff00ff;
+    }
+    66% { 
+      box-shadow: 6px 6px 0px 0px #ffff00, 0 0 30px rgba(255, 255, 0, 0.5); 
+      border-color: #ffff00;
+    }
+    100% { 
+      box-shadow: 6px 6px 0px 0px #00ffff, 0 0 30px rgba(0, 255, 255, 0.5); 
+      border-color: #00ffff;
+    }
+  }
+
+  @keyframes lava-lamp-gradient {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  .rgb-lava-button {
+    animation: lava-lamp-glow 10s ease-in-out infinite;
+  }
+
+  .rgb-text-lava {
+    background: linear-gradient(
+      45deg,
+      #00ffff,
+      #ff00ff,
+      #ffff00,
+      #00ffff
+    );
+    background-size: 300% 300%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: lava-lamp-gradient 15s ease-in-out infinite;
+  }
 }

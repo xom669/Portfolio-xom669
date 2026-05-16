@@ -10,6 +10,7 @@ import Work from './pages/Work';
 import About from './pages/About';
 import Admin from './pages/Admin';
 import Login from './pages/Login';
+import WorkDetail from './pages/WorkDetail';
 
 export default function App() {
   return (
@@ -19,6 +20,7 @@ export default function App() {
         <Route element={<Layout />}>
           <Route path="/" element={<Home />} />
           <Route path="/work" element={<Work />} />
+          <Route path="/work/:id" element={<WorkDetail />} />
           <Route path="/about" element={<About />} />
         </Route>
 

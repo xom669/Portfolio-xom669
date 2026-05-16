@@ -336,33 +336,48 @@ export default function Home() {
   
           <div className="absolute inset-0 halftone-white-bg opacity-40 pointer-events-none" />
           
-          <div className="bg-background text-on-background font-bold uppercase p-2 inline-block comic-border rotate-2 mb-6 relative z-10">
-            Recent Projects
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4 relative z-10">
+            <div className="bg-background text-on-background font-bold uppercase p-2 inline-block comic-border rotate-2 w-fit">
+              Recent Projects
+            </div>
+            
+            <Link 
+              to="/work" 
+              className="bg-on-background px-3 py-1 comic-border font-black uppercase group relative transition-all rgb-lava-button w-fit"
+            >
+              <span className="rgb-text-lava relative z-10 text-sm md:text-base">See More</span>
+              <div className="absolute inset-0 bg-on-background" />
+            </Link>
           </div>
           
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 relative z-10">
             {projects.length > 0 ? (
               projects.map((project, i) => (
-                <motion.div
-                  key={project.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.1 }}
-                  whileHover={{ 
-                    scale: 1.05, 
-                    rotate: i % 2 === 0 ? 2 : -2, 
-                    zIndex: 50,
-                    boxShadow: "0 0 30px rgba(192,38,211,0.6)"
-                  }}
-                  className="aspect-square bg-background comic-border overflow-hidden relative group/item cursor-pointer"
+                <Link 
+                  key={project.id} 
+                  to="/work"
+                  className="block group/item"
                 >
-                  <img 
-                    src={project.image_url} 
-                    alt={project.title}
-                    className="w-full h-full object-cover group-hover/item:scale-110 transition-transform duration-500"
-                  />
-                  <div className="absolute inset-0 bg-on-background/0 group-hover/item:bg-on-background/20 transition-colors" />
-                </motion.div>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.1 }}
+                    whileHover={{ 
+                      scale: 1.05, 
+                      rotate: i % 2 === 0 ? 2 : -2, 
+                      zIndex: 50,
+                      boxShadow: "0 0 30px rgba(192,38,211,0.6)"
+                    }}
+                    className="aspect-square bg-background comic-border overflow-hidden relative cursor-pointer"
+                  >
+                    <img 
+                      src={project.image_url} 
+                      alt={project.title}
+                      className="w-full h-full object-cover group-hover/item:scale-110 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-on-background/0 group-hover/item:bg-on-background/20 transition-colors" />
+                  </motion.div>
+                </Link>
               ))
             ) : (
               // Fallback placeholders if no projects yet
@@ -373,6 +388,7 @@ export default function Home() {
               ))
             )}
           </div>
+
         </div>
       </motion.section>
 
@@ -385,7 +401,7 @@ export default function Home() {
         className="grid grid-cols-1 md:grid-cols-3 gap-8"
       >
         {/* Card 1 */}
-        <div className="col-span-1 md:col-span-2 bg-background comic-border flex flex-col group h-full relative">
+        <Link to="/work" className="col-span-1 md:col-span-2 bg-background comic-border flex flex-col group h-full relative cursor-pointer hover:shadow-[4px_4px_0px_0px_#1b1b1c] transition-all">
           {/* Ace of Hearts */}
           <PlayingCard 
             suit="♥️" 
@@ -406,7 +422,7 @@ export default function Home() {
               <div className="absolute top-0 left-0 h-full bg-secondary-container w-3/4 halftone-bg" />
             </div>
           </div>
-        </div>
+        </Link>
 
         {/* Card 2 */}
         <div className="col-span-1 bg-tertiary/10 comic-border p-3 md:p-6 flex flex-col justify-center items-center text-center rotate-1 hover:rotate-0 transition-all h-full relative">
@@ -456,7 +472,7 @@ export default function Home() {
         </div>
 
         {/* Card 3 - Gallery Sneak Peek */}
-        <div className="col-span-1 md:col-span-1 bg-on-background text-background comic-border p-0 overflow-hidden relative group h-full">
+        <Link to="/work" className="col-span-1 md:col-span-1 bg-on-background text-background comic-border p-0 overflow-hidden relative group h-full cursor-pointer">
           <div className="absolute inset-0 bg-primary/20 group-hover:bg-transparent transition-colors duration-500 z-10 pointer-events-none halftone-bg opacity-50" />
           <img 
             alt="Abstract Art" 
@@ -466,7 +482,7 @@ export default function Home() {
           <div className="absolute bottom-4 left-4 z-20 bg-background text-on-background comic-border p-2 font-bold uppercase text-[10px] md:text-xs">
             Gallery Sneak Peek
           </div>
-        </div>
+        </Link>
 
         {/* Card 5 - Connect Widget */}
         <div className="col-span-1 md:col-span-2 bg-tertiary text-white comic-border p-4 md:p-8 flex flex-col justify-between group overflow-hidden relative min-h-[250px] hover:shadow-[0_0_50px_rgba(0,88,190,0.6)] transition-all duration-500">

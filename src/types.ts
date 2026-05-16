@@ -3,6 +3,7 @@ export interface Project {
   title: string;
   description: string;
   image_url: string;
+  images?: string[];
   status: 'published' | 'draft';
   link_url?: string;
   category?: string;

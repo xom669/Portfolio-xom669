@@ -5,12 +5,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Mail, ExternalLink } from 'lucide-react';
+import { Mail, ExternalLink, Eye } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Project } from '../types';
 
 export default function Work() {
-  const [projects, setProjects] = useState<any[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -23,7 +24,7 @@ export default function Work() {
           .order('created_at', { ascending: false });
         
         if (data) {
-          setProjects(data);
+          setProjects(data as Project[]);
         }
       } catch (err) {
         console.error('Error fetching projects:', err);
@@ -72,60 +73,71 @@ export default function Work() {
               <p className="mt-2">Check back soon or add some content in the admin panel.</p>
             </div>
           ) : (
-            projects.map((project, idx) => (
-              <article 
-                key={project.id || project.title}
-                className={`
-                  comic-border bg-background flex flex-col relative group overflow-hidden
-                  ${project.size === 'large' ? 'md:col-span-8' : 
-                    project.size === 'tall' ? 'md:col-span-4 md:row-span-2' : 
-                    project.size === 'wide' ? 'md:col-span-8' : 'md:col-span-4'}
-                  ${idx % 2 === 0 ? 'rotate-1' : '-rotate-1'}
-                  hover:rotate-0 transition-all hover:shadow-[8px_8px_0px_0px_rgba(27,27,28,1)]
-                `}
-              >
-                {project.link_url && (
-                  <a 
-                    href={project.link_url} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="absolute inset-0 z-30 cursor-alias"
-                  >
-                    <div className="absolute top-4 left-4 bg-primary text-white p-2 comic-border opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2 scale-75 group-hover:scale-100 translate-y-4 group-hover:translate-y-0 duration-300">
-                      <ExternalLink size={16} />
-                      <span className="font-bold text-xs">VIEW PROJECT</span>
-                    </div>
-                  </a>
-                )}
-                
-                {project.category && (
-                  <div className="absolute -top-4 -right-4 w-24 h-24 bg-primary-container starburst flex items-center justify-center comic-border rotate-[25deg] z-20 group-hover:scale-125 group-hover:rotate-45 transition-all">
-                    <span className="font-bold text-white -rotate-[25deg]">{project.category}</span>
-                  </div>
-                )}
-                
-                <div className={`
-                  w-full overflow-hidden border-b-4 border-on-background relative
-                  ${project.size === 'tall' ? 'h-96 md:h-full' : 'h-64 md:h-96'}
-                `}>
-                  <img 
-                    src={project.image_url || project.image} 
-                    alt={project.title}
-                    className="w-full h-full object-cover filter contrast-125 group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <div className="absolute inset-0 bg-halftone-pattern opacity-30 mix-blend-multiply pointer-events-none" />
-                </div>
+            projects.map((project, idx) => {
+              return (
+                <article 
+                  key={project.id || project.title}
+                  className={`
+                    comic-border bg-background flex flex-col relative group overflow-hidden
+                    ${project.size === 'large' ? 'md:col-span-8' : 
+                      project.size === 'tall' ? 'md:col-span-4 md:row-span-2' : 
+                      project.size === 'wide' ? 'md:col-span-8' : 'md:col-span-4'}
+                    ${idx % 2 === 0 ? 'rotate-1' : '-rotate-1'}
+                    hover:rotate-0 transition-all hover:shadow-[8px_8px_0px_0px_rgba(27,27,28,1)]
+                  `}
+                >
+                  <div className={`
+                    w-full overflow-hidden border-b-4 border-on-background relative
+                    ${project.size === 'tall' ? 'h-96 md:h-full' : 'h-64 md:h-96'}
+                  `}>
+                    <Link to={`/work/${project.id}`} className="block w-full h-full">
+                      <img 
+                        src={project.image_url} 
+                        alt={project.title}
+                        className="w-full h-full object-cover filter contrast-125 group-hover:scale-105 transition-transform duration-500"
+                      />
+                    </Link>
+                    
+                    {project.link_url && (
+                      <a 
+                        href={project.link_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="absolute top-4 left-4 bg-primary text-white p-2 comic-border opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2 translate-y-4 group-hover:translate-y-0 duration-300 z-10"
+                      >
+                        <ExternalLink size={16} />
+                        <span className="font-bold text-xs uppercase">LINK</span>
+                      </a>
+                    )}
 
-                <div className="p-6 bg-background">
-                  <h2 className="font-black text-3xl uppercase underline decoration-secondary decoration-4 mb-2">
-                    {project.title}
-                  </h2>
-                  <p className="opacity-80 line-clamp-3">
-                    {project.description}
-                  </p>
-                </div>
-              </article>
-            ))
+                    <Link 
+                      to={`/work/${project.id}`}
+                      className="absolute bottom-4 right-4 bg-secondary text-on-secondary px-4 py-2 comic-border font-black uppercase text-sm hover:scale-110 active:scale-95 transition-all shadow-[4px_4px_0px_0px_rgba(27,27,28,1)] z-20 flex items-center gap-2"
+                    >
+                      <Eye size={16} />
+                      SEE
+                    </Link>
+                    
+                    <div className="absolute inset-0 bg-halftone-pattern opacity-30 mix-blend-multiply pointer-events-none" />
+                  </div>
+
+                  {project.category && (
+                    <div className="absolute -top-4 -right-4 w-24 h-24 bg-primary-container starburst flex items-center justify-center comic-border rotate-[25deg] z-20 group-hover:scale-110 group-hover:rotate-45 transition-all pointer-events-none">
+                      <span className="font-bold text-white -rotate-[25deg]">{project.category}</span>
+                    </div>
+                  )}
+
+                  <div className="p-6 bg-background">
+                    <h2 className="font-black text-3xl uppercase underline decoration-secondary decoration-4 mb-2">
+                      {project.title}
+                    </h2>
+                    <p className="opacity-80 line-clamp-3">
+                      {project.description}
+                    </p>
+                  </div>
+                </article>
+              );
+            })
           )}
         </motion.section>
       )}

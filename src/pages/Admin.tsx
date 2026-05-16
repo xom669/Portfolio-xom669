@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Project, Profile, Skill } from '../types';
 import { 
@@ -23,7 +23,8 @@ import {
   Save,
   User,
   Image as ImageIcon,
-  Sword
+  Sword,
+  Eye
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -42,6 +43,7 @@ export default function Admin() {
   const [loading, setLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
 
   const defaultSkills: any[] = [
@@ -74,10 +76,12 @@ export default function Admin() {
     { name: 'Vercel', category: 'Web Development', enabled: true, order: 25 },
   ];
   
+  const [editingProject, setEditingProject] = useState<any | null>(null);
   const [newProject, setNewProject] = useState({
     title: '',
     description: '',
     image_url: '',
+    images: [] as string[],
     status: 'published' as const,
     link_url: '',
     size: 'square' as any
@@ -189,31 +193,50 @@ export default function Admin() {
     e.preventDefault();
     setLoading(true);
     try {
-      // Constructing payload explicitly. 
-      // We omit 'size' and 'link_url' because they may be missing from your Supabase table.
-      // Run the SQL provided in the chat to add these columns, then you can uncomment them here.
       const projectData: any = { 
         title: newProject.title, 
         description: newProject.description, 
         image_url: newProject.image_url, 
+        images: newProject.images,
         status: newProject.status,
-        created_at: new Date().toISOString() 
+        link_url: newProject.link_url,
+        size: newProject.size,
+        created_at: editingProject ? editingProject.created_at : new Date().toISOString() 
       };
 
-      // if (newProject.link_url) projectData.link_url = newProject.link_url;
-      // projectData.size = newProject.size;
-
-      const { error } = await supabase.from('projects').insert([projectData]);
+      let error;
+      if (editingProject) {
+        ({ error } = await supabase.from('projects').update(projectData).eq('id', editingProject.id));
+      } else {
+        ({ error } = await supabase.from('projects').insert([projectData]));
+      }
+      
       if (error) throw error;
       
       setIsAdding(false);
-      setNewProject({ title: '', description: '', image_url: '', status: 'published', link_url: '', size: 'square' });
+      setEditingProject(null);
+      setNewProject({ title: '', description: '', image_url: '', images: [], status: 'published', link_url: '', size: 'square' });
       fetchProjects();
-      alert('Project added successfully!');
+      alert(editingProject ? 'Project updated!' : 'Project added successfully!');
     } catch (err: any) {
       alert('Error: ' + err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const toggleProjectStatus = async (project: any) => {
+    const newStatus = project.status === 'published' ? 'draft' : 'published';
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .update({ status: newStatus })
+        .eq('id', project.id);
+      
+      if (error) throw error;
+      fetchProjects();
+    } catch (err: any) {
+      alert('Toggle failed: ' + err.message);
     }
   };
 
@@ -261,8 +284,72 @@ export default function Admin() {
   };
 
   return (
-    <div className="flex bg-halftone min-h-screen">
-      {/* Sidebar */}
+    <div className="flex bg-halftone min-h-screen relative">
+      {/* Mobile Header */}
+      <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-surface border-b-4 border-on-background z-50 flex items-center justify-between px-4">
+        <h1 className="font-black text-xl text-primary uppercase">Studio Guardian</h1>
+        <button 
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          className="p-2 comic-border bg-background"
+        >
+          {isMobileMenuOpen ? <LogOut size={20} className="rotate-90" /> : <LayoutDashboard size={20} />}
+        </button>
+      </div>
+
+      {/* Mobile Menu Overlay */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden fixed inset-0 z-40 bg-surface flex flex-col p-8 pt-24 animate-in fade-in slide-in-from-top-4">
+          <nav className="flex flex-col gap-6">
+            <button 
+              onClick={() => { setActiveTab('dashboard'); setIsMobileMenuOpen(false); }}
+              className={cn(
+                "flex items-center gap-4 p-4 font-bold text-xl transition-all",
+                activeTab === 'dashboard' ? "bg-secondary-container comic-border -rotate-1" : ""
+              )}
+            >
+              <LayoutDashboard size={24} /> Dashboard
+            </button>
+            <button 
+              onClick={() => { setActiveTab('projects'); setIsMobileMenuOpen(false); }}
+              className={cn(
+                "flex items-center gap-4 p-4 font-bold text-xl transition-all",
+                activeTab === 'projects' ? "bg-secondary-container comic-border rotate-1" : ""
+              )}
+            >
+              <Palette size={24} /> Sketchbook
+            </button>
+            <button 
+              onClick={() => { setActiveTab('skills'); setIsMobileMenuOpen(false); }}
+              className={cn(
+                "flex items-center gap-4 p-4 font-bold text-xl transition-all",
+                activeTab === 'skills' ? "bg-secondary-container comic-border rotate-1" : ""
+              )}
+            >
+              <Sword size={24} /> Armory
+            </button>
+            <button 
+              onClick={() => { setActiveTab('settings'); setIsMobileMenuOpen(false); }}
+              className={cn(
+                "flex items-center gap-4 p-4 font-bold text-xl transition-all",
+                activeTab === 'settings' ? "bg-secondary-container comic-border -rotate-1" : ""
+              )}
+            >
+              <Settings size={24} /> Settings
+            </button>
+            
+            <div className="mt-8 pt-8 border-t-4 border-dashed border-on-background">
+              <button 
+                onClick={handleLogout}
+                className="flex items-center gap-4 p-4 font-bold text-xl text-red-600"
+              >
+                <LogOut size={24} /> Log Out
+              </button>
+            </div>
+          </nav>
+        </div>
+      )}
+
+      {/* Sidebar (Desktop) */}
       <aside className="hidden md:flex h-screen w-72 flex-col fixed left-0 top-0 bg-surface border-r-4 border-on-background shadow-[6px_0px_0px_0px_rgba(27,27,28,1)] gap-6 p-8 z-40">
         <div className="mb-8">
           <h1 className="font-black text-3xl text-primary uppercase leading-tight">Studio<br />Guardian</h1>
@@ -326,34 +413,34 @@ export default function Admin() {
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 md:ml-72 p-8 md:p-12 pb-24">
+      <div className="flex-1 md:ml-72 p-4 sm:p-8 md:p-12 pb-24 pt-20 md:pt-12">
         
         {/* TAB 1: DASHBOARD */}
         {activeTab === 'dashboard' && (
-          <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="bg-background p-8 comic-border rotate-[-0.5deg]">
-              <h2 className="font-black text-5xl uppercase italic tracking-tighter">Mission Status</h2>
-              <p className="mt-2 border-l-4 border-primary pl-4 font-bold">Analytics for your creative empire.</p>
+          <div className="space-y-6 md:space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="bg-background p-6 md:p-8 comic-border rotate-[-0.5deg]">
+              <h2 className="font-black text-3xl md:text-5xl uppercase italic tracking-tighter">Mission Status</h2>
+              <p className="mt-2 border-l-4 border-primary pl-4 font-bold text-sm md:text-base">Analytics for your creative empire.</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8">
               {[
                 { label: 'Live Panels', value: projects.filter(p => p.status === 'published').length, color: 'bg-primary-container' },
                 { label: 'Drafts', value: projects.filter(p => p.status === 'draft').length, color: 'bg-secondary-container' },
                 { label: 'Studio Age', value: '19 Days', color: 'bg-tertiary-container' },
               ].map((stat, i) => (
-                <div key={i} className={cn("p-8 comic-border flex flex-col", stat.color, i % 2 === 0 ? 'rotate-1' : '-rotate-1')}>
+                <div key={i} className={cn("p-6 md:p-8 comic-border flex flex-col", stat.color, i % 2 === 0 ? 'rotate-1' : '-rotate-1')}>
                   <span className="font-black text-xs uppercase opacity-60">{stat.label}</span>
-                  <span className="font-black text-6xl mt-2">{stat.value}</span>
+                  <span className="font-black text-4xl md:text-6xl mt-2">{stat.value}</span>
                 </div>
               ))}
             </div>
 
-            <div className="bg-surface p-12 comic-border flex items-center justify-between gap-8">
+            <div className="bg-surface p-6 md:p-12 comic-border flex flex-col md:flex-row items-start md:items-center justify-between gap-6 md:gap-8 text-left">
               <div className="space-y-4">
-                <h3 className="font-black text-3xl uppercase">Quick Deploy</h3>
-                <p className="font-medium opacity-70">Ready to drop a new piece? The audience is waiting for your next transmission.</p>
-                <button onClick={() => setIsAdding(true)} className="bg-on-background text-white px-8 py-4 font-black uppercase comic-border">Execute Upload</button>
+                <h3 className="font-black text-2xl md:text-3xl uppercase">Quick Deploy</h3>
+                <p className="font-medium opacity-70 text-sm md:text-base">Ready to drop a new piece? The audience is waiting for your next transmission.</p>
+                <button onClick={() => setIsAdding(true)} className="bg-on-background text-white w-full md:w-auto px-8 py-4 font-black uppercase comic-border">Execute Upload</button>
               </div>
               <div className="hidden lg:block w-48 h-48 bg-primary/20 rounded-full border-4 border-dashed border-primary animate-pulse" />
             </div>
@@ -362,15 +449,15 @@ export default function Admin() {
 
         {/* TAB 2: PROJECTS */}
         {activeTab === 'projects' && (
-          <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="bg-background p-8 comic-border flex flex-col md:flex-row justify-between items-start md:items-end gap-6 rotate-[-0.5deg]">
+          <div className="space-y-8 md:space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="bg-background p-6 md:p-8 comic-border flex flex-col md:flex-row justify-between items-start md:items-end gap-6 rotate-[-0.5deg]">
               <div>
-                <h2 className="font-black text-5xl uppercase tracking-tighter">Sketchbook Panels</h2>
-                <p className="max-w-xl mt-2 border-l-4 border-primary pl-4 font-bold">Manage your active sketchbook panels. Real-time sync with Supabase enabled.</p>
+                <h2 className="font-black text-3xl md:text-5xl uppercase tracking-tighter">Sketchbook Panels</h2>
+                <p className="max-w-xl mt-2 border-l-4 border-primary pl-4 font-bold text-sm md:text-base">Manage your active sketchbook panels. Real-time sync with Supabase enabled.</p>
               </div>
               <button 
                 onClick={() => setIsAdding(true)}
-                className="bg-primary text-white font-bold uppercase py-4 px-8 comic-border hover:bg-primary/90 active:translate-x-[4px] active:translate-y-[4px] active:shadow-none rotate-[1deg] flex items-center gap-2"
+                className="bg-primary text-white w-full md:w-auto font-bold uppercase py-4 px-8 comic-border hover:bg-primary/90 active:translate-x-[4px] active:translate-y-[4px] active:shadow-none rotate-[1deg] flex items-center justify-center gap-2"
               >
                 <PlusCircle size={20} /> New Content
               </button>
@@ -404,9 +491,40 @@ export default function Admin() {
                       </div>
                       
                       <div className="mt-auto flex gap-2">
-                        <button className="flex-1 bg-surface border-4 border-on-background py-2 font-bold hover:bg-secondary-container transition-colors flex items-center justify-center gap-2">
+                        <button 
+                          onClick={() => {
+                            setEditingProject(project);
+                            setNewProject({
+                              title: project.title,
+                              description: project.description,
+                              image_url: project.image_url,
+                              images: project.images || [],
+                              status: project.status,
+                              link_url: project.link_url || '',
+                              size: project.size || 'square'
+                            });
+                            setIsAdding(true);
+                          }}
+                          className="flex-1 bg-surface border-4 border-on-background py-2 font-bold hover:bg-secondary-container transition-colors flex items-center justify-center gap-2"
+                        >
                           <Edit3 size={16} /> Edit
                         </button>
+                        <button 
+                          onClick={() => toggleProjectStatus(project)}
+                          className={cn(
+                            "flex-1 border-4 border-on-background py-2 font-bold transition-colors flex items-center justify-center gap-2",
+                            project.status === 'published' ? "bg-background hover:bg-surface" : "bg-primary text-white hover:bg-primary/90"
+                          )}
+                        >
+                          {project.status === 'published' ? 'Hide' : 'Show'}
+                        </button>
+                        <Link 
+                          to={`/work/${project.id}`}
+                          target="_blank"
+                          className="w-12 bg-background border-4 border-on-background flex items-center justify-center hover:bg-surface transition-colors"
+                        >
+                          <Eye size={18} />
+                        </Link>
                         <button 
                           onClick={() => handleDeleteProject(project.id)}
                           className="w-12 bg-background border-4 border-on-background flex items-center justify-center text-red-600 hover:bg-red-50 transition-colors"
@@ -424,15 +542,15 @@ export default function Admin() {
 
         {/* TAB 4: SKILLS */}
         {activeTab === 'skills' && (
-          <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="bg-background p-8 comic-border flex flex-col md:flex-row justify-between items-start md:items-end gap-6 rotate-[-0.5deg]">
+          <div className="space-y-8 md:space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="bg-background p-6 md:p-8 comic-border flex flex-col md:flex-row justify-between items-start md:items-end gap-6 rotate-[-0.5deg]">
               <div>
-                <h2 className="font-black text-5xl uppercase tracking-tighter">Professional Armory</h2>
-                <p className="max-w-xl mt-2 border-l-4 border-primary pl-4 font-bold">In the brutal world of creativity, these are your weapons. Enable or disable them for the frontend.</p>
+                <h2 className="font-black text-3xl md:text-5xl uppercase tracking-tighter">Professional Armory</h2>
+                <p className="max-w-xl mt-2 border-l-4 border-primary pl-4 font-bold text-sm md:text-base">In the brutal world of creativity, these are your weapons.</p>
               </div>
               <button 
                 onClick={handleSyncSkills}
-                className="bg-secondary-container text-on-background font-bold uppercase py-4 px-8 comic-border hover:bg-secondary active:translate-x-[4px] active:translate-y-[4px] active:shadow-none rotate-[1deg] flex items-center gap-2"
+                className="bg-secondary-container text-on-background w-full md:w-auto font-bold uppercase py-3 px-6 comic-border hover:bg-secondary active:translate-x-[4px] active:translate-y-[4px] active:shadow-none rotate-[1deg] flex items-center justify-center gap-2"
               >
                 Sync Defaults
               </button>
@@ -472,27 +590,23 @@ export default function Admin() {
 
         {/* TAB 3: SETTINGS */}
         {activeTab === 'settings' && (
-          <div className="max-w-4xl space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="bg-background p-8 comic-border rotate-[0.5deg]">
-              <h2 className="font-black text-5xl uppercase tracking-tighter">Studio Identity</h2>
-              <p className="mt-2 border-l-4 border-primary pl-4 font-bold">Customize your public persona and portfolio background data.</p>
+          <div className="max-w-4xl space-y-8 md:space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="bg-background p-6 md:p-8 comic-border rotate-[0.5deg]">
+              <h2 className="font-black text-3xl md:text-5xl uppercase tracking-tighter">Studio Identity</h2>
+              <p className="mt-2 border-l-4 border-primary pl-4 font-bold text-sm md:text-base">Customize your public persona.</p>
             </div>
 
-            <form onSubmit={handleUpdateProfile} className="bg-surface p-8 md:p-12 comic-border space-y-10">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+            <form onSubmit={handleUpdateProfile} className="bg-surface p-6 md:p-12 comic-border space-y-10">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
                 {/* Profile Pic Preview */}
-                <div className="space-y-4">
-                  <span className="block font-black uppercase text-xs tracking-widest text-on-background/60">Current Vizor</span>
-                  <div className="w-full aspect-square bg-background comic-border rounded-full overflow-hidden relative border-8 border-white p-2">
+                <div className="space-y-4 max-w-[200px] mx-auto md:max-w-none w-full">
+                  <span className="block font-black uppercase text-xs tracking-widest text-on-background/60 text-center md:text-left">Current Vizor</span>
+                  <div className="w-full aspect-square bg-background comic-border rounded-full overflow-hidden relative border-4 md:border-8 border-white p-2">
                     <img 
                       src={profileForm.pfp_url || 'https://via.placeholder.com/400'} 
                       alt="PFP Preview" 
                       className="w-full h-full object-cover rounded-full"
                     />
-                  </div>
-                  <div className="flex gap-2 p-2 bg-on-background/5 rounded-xl">
-                    <ImageIcon size={14} className="opacity-50" />
-                    <span className="text-[10px] uppercase font-bold opacity-50 overflow-hidden truncate">{profileForm.pfp_url}</span>
                   </div>
                 </div>
 
@@ -591,22 +705,22 @@ export default function Admin() {
           </div>
         )}
 
-        {/* MODAL: ADD PROJECT */}
+        {/* MODAL: ADD/EDIT PROJECT */}
         {isAdding && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-on-background/50 backdrop-blur-sm">
-            <div className="bg-background comic-border w-full max-w-2xl p-8 max-h-[90vh] overflow-y-auto shadow-[12px_12px_0px_0px_rgba(27,27,28,1)]">
-              <h3 className="font-black text-3xl uppercase mb-6 flex items-center gap-3">
-                <CloudUpload className="text-primary" /> Create New Panel
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-on-background/50 backdrop-blur-sm">
+            <div className="bg-background comic-border w-full max-w-2xl p-4 sm:p-8 max-h-[95vh] overflow-y-auto shadow-[8px_8px_0px_0px_rgba(27,27,28,1)] sm:shadow-[12px_12px_0px_0px_rgba(27,27,28,1)]">
+              <h3 className="font-black text-2xl sm:text-3xl uppercase mb-6 flex items-center gap-3">
+                <CloudUpload className="text-primary" /> {editingProject ? 'Modify Panel' : 'Create New Panel'}
               </h3>
               <form onSubmit={handleAddProject} className="space-y-6">
                 <div>
-                  <label className="block font-bold uppercase text-sm mb-2 text-on-background">Project Title</label>
+                  <label className="block font-bold uppercase text-xs sm:text-sm mb-2 text-on-background">Project Title</label>
                   <input 
                     required
                     type="text" 
                     value={newProject.title}
                     onChange={(e) => setNewProject({...newProject, title: e.target.value})}
-                    className="w-full bg-surface border-4 border-on-background p-4 font-bold focus:shadow-[4px_4px_0px_0px_rgba(27,27,28,1)] outline-none"
+                    className="w-full bg-surface border-4 border-on-background p-3 sm:p-4 font-bold focus:shadow-[4px_4px_0px_0px_rgba(27,27,28,1)] outline-none"
                     placeholder="E.g. Neon Streets"
                   />
                 </div>
@@ -621,7 +735,7 @@ export default function Admin() {
                   />
                 </div>
                 <div>
-                  <label className="block font-bold uppercase text-sm mb-2 text-on-background">Image URL / Upload</label>
+                  <label className="block font-bold uppercase text-sm mb-2 text-on-background">Main Image URL / Upload</label>
                   <div className="flex flex-col gap-4">
                     <input 
                       required
@@ -652,9 +766,78 @@ export default function Admin() {
                         className="absolute inset-0 opacity-0 cursor-pointer"
                       />
                       <div className="w-full bg-secondary-container border-4 border-dashed border-on-background p-4 font-black text-center uppercase hover:bg-secondary transition-colors">
-                        Drop / Select Panel Image
+                        Drop / Select Main Image
                       </div>
                     </div>
+                  </div>
+                  {newProject.image_url && (
+                    <div className="mt-4 p-2 bg-surface comic-border w-24 h-24 overflow-hidden">
+                      <img src={newProject.image_url} alt="Main preview" className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block font-bold uppercase text-sm mb-2 text-on-background">Additional Project Photos (Optional)</label>
+                  <div className="space-y-4">
+                    <div className="relative">
+                      <input 
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={async (e) => {
+                          const files = e.target.files;
+                          if (files) {
+                            const newBase64Images: string[] = [];
+                            const fileArray = Array.from(files) as File[];
+                            
+                            for (const file of fileArray) {
+                              if (file.size > 2 * 1024 * 1024) {
+                                alert(`${file.name} is too large! Skipping.`);
+                                continue;
+                              }
+                              
+                              const base64 = await new Promise<string>((resolve) => {
+                                const reader = new FileReader();
+                                reader.onloadend = () => resolve(reader.result as string);
+                                reader.readAsDataURL(file);
+                              });
+                              newBase64Images.push(base64);
+                            }
+                            
+                            setNewProject(prev => ({
+                              ...prev,
+                              images: [...prev.images, ...newBase64Images]
+                            }));
+                          }
+                        }}
+                        className="absolute inset-0 opacity-0 cursor-pointer"
+                      />
+                      <div className="w-full bg-tertiary-container border-4 border-dashed border-on-background p-4 font-black text-center uppercase hover:bg-tertiary transition-colors">
+                        Add More Photos
+                      </div>
+                    </div>
+
+                    {newProject.images.length > 0 && (
+                      <div className="grid grid-cols-4 gap-2 bg-surface p-4 comic-border max-h-48 overflow-y-auto">
+                        {newProject.images.map((img, idx) => (
+                          <div key={idx} className="relative group aspect-square comic-border overflow-hidden">
+                            <img src={img} alt={`Preview ${idx}`} className="w-full h-full object-cover" />
+                            <button 
+                              type="button"
+                              onClick={() => {
+                                const updated = [...newProject.images];
+                                updated.splice(idx, 1);
+                                setNewProject({...newProject, images: updated});
+                              }}
+                              className="absolute inset-0 bg-red-600/80 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                            >
+                              <Trash2 size={20} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div>
@@ -693,18 +876,22 @@ export default function Admin() {
                     </select>
                   </div>
                 </div>
-                <div className="flex gap-4 pt-4">
+                <div className="flex flex-col sm:flex-row gap-4 pt-4">
                   <button 
                     type="submit"
                     disabled={loading}
-                    className="flex-1 bg-primary text-white font-black uppercase py-4 comic-border hover:bg-primary/90 disabled:opacity-50 transition-all hover:-translate-y-1 shadow-[6px_6px_0px_0px_rgba(27,27,28,1)]"
+                    className="flex-1 bg-primary text-white font-black uppercase py-4 comic-border hover:bg-primary/90 disabled:opacity-50 transition-all hover:-translate-y-1 shadow-[6px_6px_0px_0px_rgba(27,27,28,1)] order-1 sm:order-none"
                   >
-                    {loading ? 'Synthesizing...' : 'Upload Transmission'}
+                    {loading ? 'Synthesizing...' : (editingProject ? 'Update Panel' : 'Upload Transmission')}
                   </button>
                   <button 
                     type="button"
-                    onClick={() => setIsAdding(false)}
-                    className="bg-background text-on-background font-bold uppercase py-4 px-8 comic-border hover:bg-surface transition-all"
+                    onClick={() => {
+                      setIsAdding(false);
+                      setEditingProject(null);
+                      setNewProject({ title: '', description: '', image_url: '', images: [], status: 'published', link_url: '', size: 'square' });
+                    }}
+                    className="bg-background text-on-background font-bold uppercase py-4 px-8 comic-border hover:bg-surface transition-all order-2 sm:order-none"
                   >
                     Abort
                   </button>
