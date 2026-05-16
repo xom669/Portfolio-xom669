@@ -4,8 +4,8 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { motion } from 'motion/react';
-import { ArrowRight, Star, Instagram, Linkedin, Github } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { ArrowRight, Star, Instagram, Linkedin, Github, Bomb, AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { QuoteWidget } from '../components/QuoteWidget';
 import { supabase } from '../lib/supabase';
@@ -17,16 +17,88 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+// Helper component for the decorative cards
+const PlayingCard = ({ 
+  suit = '♠', 
+  value = 'K', 
+  isRed = false, 
+  className = "", 
+  rotation = 12 
+}: { 
+  suit?: string; 
+  value?: string; 
+  isRed?: boolean; 
+  className?: string; 
+  rotation?: number;
+}) => (
+  <motion.div 
+    initial={{ opacity: 0, scale: 0, rotate: rotation + 10 }}
+    whileInView={{ opacity: 1, scale: 1, rotate: rotation }}
+    viewport={{ once: true }}
+    className={cn(
+      "absolute bg-white comic-border shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-30 flex flex-col p-1 group/card hover:-translate-y-2 transition-transform",
+      className
+    )}
+  >
+    <div className={cn(
+      "flex flex-col h-full border rounded-sm relative p-1 overflow-hidden",
+      isRed ? "border-red-600" : "border-on-background"
+    )}>
+      <span className={cn("font-bold text-xs leading-none", isRed ? "text-red-600" : "text-on-background")}>{value}</span>
+      <span className={cn("text-[8px]", isRed ? "text-red-600" : "text-on-background")}>{suit}</span>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className={cn("text-xl font-black", isRed ? "text-red-600" : "text-on-background")}>{value}</span>
+      </div>
+      <div className="absolute bottom-0 right-0 flex flex-col items-end rotate-180 p-0.5">
+        <span className={cn("font-bold text-[8px] leading-none", isRed ? "text-red-600" : "text-on-background")}>{value}</span>
+        <span className={cn("text-[6px]", isRed ? "text-red-600" : "text-on-background")}>{suit}</span>
+      </div>
+      <div className="absolute inset-0 halftone-bg opacity-5 pointer-events-none" />
+    </div>
+  </motion.div>
+);
+
 export default function Home() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [skills, setSkills] = useState<Skill[]>([]);
+  const [isExploding, setIsExploding] = useState(false);
+  const [isEverythingGone, setIsEverythingGone] = useState(false);
+
+  const handleBoom = () => {
+    setIsExploding(true);
+    
+    // Step 1: Trigger Explosion
+    setTimeout(() => {
+      setIsExploding(false);
+      setIsEverythingGone(true);
+      
+      // Step 2: Show "Gone" message and then fix it
+      setTimeout(() => {
+        setIsEverythingGone(false);
+      }, 3000);
+    }, 800);
+  };
 
   useEffect(() => {
+    // Try to load from cache first for instant UI
+    const cachedProfile = localStorage.getItem('profile_cache');
+    if (cachedProfile) {
+      try {
+        setProfile(JSON.parse(cachedProfile));
+      } catch (e) {
+        console.error('Failed to parse cached profile', e);
+      }
+    }
+
     const fetchData = async () => {
       // Fetch the first profile (assuming only one artist/owner)
       const { data: profileData } = await supabase.from('profiles').select('*').limit(1).single();
-      if (profileData) setProfile(profileData);
+      if (profileData) {
+        setProfile(profileData);
+        // Update cache
+        localStorage.setItem('profile_cache', JSON.stringify(profileData));
+      }
 
       // Fetch projects for the collage
       const { data: projectsData } = await supabase.from('projects')
@@ -67,18 +139,89 @@ export default function Home() {
   const pfp = profile?.pfp_url || 'https://artifact.stately.ai/b798ab49-233f-41e4-ae83-f8c553e1aa7a/input_file_0.png';
 
   return (
-    <div className="p-8 md:p-12 max-w-7xl mx-auto w-full flex flex-col gap-12">
+    <div className="p-8 md:p-12 max-w-7xl mx-auto w-full flex flex-col gap-12 relative min-h-screen overflow-x-hidden">
+      <AnimatePresence>
+        {isExploding && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none"
+          >
+            <motion.div 
+              initial={{ scale: 0, rotate: -20 }}
+              animate={{ scale: [0, 4, 3.5], rotate: [0, 10, -5] }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
+              className="relative"
+            >
+              <div className="text-[120px] md:text-[300px] font-black text-white italic drop-shadow-[10px_10px_0px_rgba(0,0,0,1)] uppercase select-none z-10 relative starburst px-20 py-10 bg-red-600 border-[12px] border-black">
+                BOOM!
+              </div>
+              {[...Array(20)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ x: 0, y: 0, scale: 1 }}
+                  animate={{ 
+                    x: (Math.random() - 0.5) * 1000, 
+                    y: (Math.random() - 0.5) * 1000,
+                    scale: 0,
+                    rotate: Math.random() * 360
+                  }}
+                  transition={{ duration: 0.8, delay: 0.1 }}
+                  className={cn(
+                    "absolute top-1/2 left-1/2 w-20 h-20 comic-border rounded-full",
+                    i % 3 === 0 ? "bg-yellow-400" : i % 3 === 1 ? "bg-orange-500" : "bg-red-600"
+                  )}
+                />
+              ))}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isEverythingGone && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[90] bg-on-background flex flex-col items-center justify-center text-center p-8 overflow-hidden"
+          >
+            <div className="absolute inset-0 halftone-bg opacity-20" />
+            <motion.div
+              initial={{ scale: 0.8, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              className="relative z-10"
+            >
+              <h2 className="text-white font-black text-2xl md:text-6xl uppercase mb-4 comic-border border-white p-6 inline-block -rotate-2">
+                Every thing is gone...
+              </h2>
+              <div className="flex items-center justify-center gap-2 mt-4 text-primary font-bold text-xl md:text-3xl animate-pulse">
+                <span>but we will fix all again</span>
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                >
+                  <Star className="fill-primary" />
+                </motion.div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className={cn("flex flex-col gap-12 transition-all duration-300", (isExploding || isEverythingGone) && "opacity-0 scale-95 blur-xl")}>
       {/* Hero Section */}
-      <section className="relative comic-border p-8 md:p-12 rotate-[-1deg] overflow-hidden group">
+      <section className="relative comic-border p-8 md:p-12 rotate-[-1deg] group">
         {/* Glowing Moving Gradient Background */}
-        <div className="absolute inset-0 bg-linear-to-br from-fuchsia-600 via-black to-emerald-500 bg-[length:400%_400%] animate-[gradient_15s_ease_infinite]" />
+        <div className="absolute inset-0 bg-linear-to-br from-fuchsia-600 via-black to-emerald-500 bg-[length:400%_400%] animate-[gradient_15s_ease_infinite] overflow-hidden" />
         
         {/* Glow Overlay */}
-        <div className="absolute inset-0 opacity-40 blur-3xl pointer-events-none">
+        <div className="absolute inset-0 opacity-40 blur-3xl pointer-events-none overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-full bg-linear-to-tr from-purple-500/20 to-emerald-500/20 animate-pulse" />
         </div>
 
-        <div className="absolute inset-0 halftone-white-bg opacity-30 pointer-events-none" />
+        <div className="absolute inset-0 halftone-white-bg opacity-30 pointer-events-none overflow-hidden" />
         
         {/* Floating "WOW!" Pop */}
         <motion.div 
@@ -89,9 +232,32 @@ export default function Home() {
           WOW!
         </motion.div>
 
-        <div className="flex flex-row items-center justify-between gap-3 md:gap-12 relative z-20">
-          <div className="flex-1 order-1">
-            <h1 className="font-black text-lg md:text-7xl text-on-background uppercase bg-background inline-block px-3 py-2 md:px-4 md:py-2 comic-border rotate-[1deg] hover:rotate-[0deg] hover:shadow-[0_0_40px_-10px_rgba(192,38,211,0.6)] transition-all overflow-hidden w-full md:w-auto text-center md:text-left leading-none decoration-primary decoration-4">
+        {/* Hero Card - King of Spades (Black) */}
+        <PlayingCard 
+          suit="♠" 
+          value="K" 
+          rotation={12} 
+          className="w-12 h-18 md:w-20 md:h-28 -top-4 -right-4 md:-top-10 md:-right-10" 
+        />
+
+        <div className="flex flex-col md:flex-row items-center justify-between gap-6 md:gap-12 relative z-20">
+          <div className="flex-shrink-0 relative order-1 md:order-2">
+            <div className="w-48 h-48 md:w-80 md:h-80 bg-tertiary-container comic-border-primary rounded-full overflow-hidden relative group/avatar hover:shadow-[0_0_50px_-5px_rgba(16,185,129,0.7)] transition-all">
+              <img 
+                alt="Profile" 
+                className="w-full h-full object-cover filter contrast-125 group-hover/avatar:scale-105 transition-all duration-500"
+                src={pfp} 
+                // @ts-ignore - fetchPriority is a valid attribute for performance optimization
+                fetchPriority="high"
+                loading="eager"
+                decoding="sync"
+              />
+            </div>
+            <div className="absolute -inset-2 md:-inset-4 border-2 md:border-4 border-on-background rounded-full border-dashed animate-[spin_10s_linear_infinite] pointer-events-none group-hover:border-primary transition-colors" />
+          </div>
+
+          <div className="flex-1 order-2 md:order-1 flex flex-col items-center md:items-start text-center md:text-left">
+            <h1 className="font-black text-2xl md:text-7xl text-on-background uppercase bg-background inline-block px-4 py-2 md:px-4 md:py-2 comic-border rotate-[1deg] hover:rotate-[0deg] hover:shadow-[0_0_40px_-10px_rgba(192,38,211,0.6)] transition-all overflow-hidden w-auto leading-none decoration-primary decoration-4">
               <motion.span
                 initial={{ y: 100 }}
                 animate={{ y: 0 }}
@@ -101,7 +267,7 @@ export default function Home() {
                 HI! I'M {displayName}
               </motion.span>
             </h1>
-            <p className="text-sm md:text-xl bg-background p-3 md:p-6 comic-border hidden md:block mt-4 hover:shadow-[0_0_30px_-10px_rgba(16,185,129,0.5)] transition-all">
+            <p className="text-xl bg-background p-6 comic-border hidden md:block mt-4 hover:shadow-[0_0_30px_-10px_rgba(16,185,129,0.5)] transition-all">
               {bio}
             </p>
             <div className="hidden md:flex mt-6">
@@ -111,20 +277,9 @@ export default function Home() {
               </Link>
             </div>
           </div>
-          
-          <div className="flex-shrink-0 relative order-2">
-            <div className="w-20 h-20 md:w-80 md:h-80 bg-tertiary-container comic-border-primary rounded-full overflow-hidden relative group/avatar hover:shadow-[0_0_50px_-5px_rgba(16,185,129,0.7)] transition-all">
-              <img 
-                alt="Profile" 
-                className="w-full h-full object-cover filter contrast-125 group-hover/avatar:scale-105 transition-all duration-500"
-                src={pfp} 
-              />
-            </div>
-            <div className="absolute -inset-2 md:-inset-4 border-2 md:border-4 border-on-background rounded-full border-dashed animate-[spin_10s_linear_infinite] pointer-events-none group-hover:border-primary transition-colors" />
-          </div>
         </div>
         <div className="mt-6 md:hidden relative z-20">
-            <p className="text-sm bg-background p-4 comic-border mb-4 hover:shadow-[0_0_30px_-10px_rgba(16,185,129,0.5)] transition-all">
+            <p className="text-[10px] md:text-sm bg-background p-3 comic-border mb-4 hover:shadow-[0_0_30px_-10px_rgba(16,185,129,0.5)] transition-all text-center">
               {bio}
             </p>
             <Link to="/work" className="bg-primary text-white font-bold uppercase py-3 px-6 comic-border text-sm flex items-center justify-center gap-2 w-full group/btn hover:shadow-[0_0_20px_rgba(192,38,211,0.6)] transition-all">
@@ -144,12 +299,32 @@ export default function Home() {
       </section>
 
       {/* Quote & Game Widget */}
-      <section className="animate-on-scroll">
+      <motion.section 
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-100px" }}
+        transition={{ duration: 0.6 }}
+        className="animate-on-scroll"
+      >
         <QuoteWidget />
-      </section>
+      </motion.section>
 
       {/* Collage Section (Moved below Daily Inspiration) */}
-      <section className="animate-on-scroll">
+      <motion.section 
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-100px" }}
+        transition={{ duration: 0.6 }}
+        className="animate-on-scroll relative transition-all"
+      >
+        {/* Joker Card */}
+        <PlayingCard 
+          suit="☠️" 
+          value="JK" 
+          rotation={-15} 
+          className="w-10 h-14 md:w-16 md:h-24 -top-8 -left-2 md:-top-12 md:-left-4 z-40" 
+        />
+
         <div className="relative comic-border p-4 md:p-6 overflow-hidden min-h-[300px] group/collage">
           {/* Glowing Moving Gradient Background */}
           <div className="absolute inset-0 bg-linear-to-br from-fuchsia-600 via-black to-emerald-500 bg-[length:400%_400%] animate-[gradient_15s_ease_infinite]" />
@@ -199,12 +374,27 @@ export default function Home() {
             )}
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* Bento Grid */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <motion.section 
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-100px" }}
+        transition={{ duration: 0.6 }}
+        className="grid grid-cols-1 md:grid-cols-3 gap-8"
+      >
         {/* Card 1 */}
-        <div className="col-span-1 md:col-span-2 bg-background comic-border flex flex-col group h-full">
+        <div className="col-span-1 md:col-span-2 bg-background comic-border flex flex-col group h-full relative">
+          {/* Ace of Hearts */}
+          <PlayingCard 
+            suit="♥️" 
+            value="A" 
+            isRed 
+            rotation={-8} 
+            className="w-8 h-12 md:w-14 md:h-20 -bottom-4 -left-4 md:-bottom-8 md:-left-8" 
+          />
+
           <div className="bg-primary text-white font-bold uppercase p-2 md:p-3 border-b-4 border-on-background flex justify-between items-center text-xs md:text-base">
             <span>Recent Mission</span>
             <Star size={14} className="group-hover:rotate-180 transition-transform duration-500" />
@@ -219,10 +409,12 @@ export default function Home() {
         </div>
 
         {/* Card 2 */}
-        <div className="col-span-1 bg-tertiary/10 comic-border p-3 md:p-6 flex flex-col justify-center items-center text-center rotate-1 hover:rotate-0 transition-all h-full">
+        <div className="col-span-1 bg-tertiary/10 comic-border p-3 md:p-6 flex flex-col justify-center items-center text-center rotate-1 hover:rotate-0 transition-all h-full relative">
           <span className="material-symbols-outlined !text-3xl md:!text-6xl text-primary mb-1 md:mb-4 animate-bounce">local_fire_department</span>
           <h3 className="font-black text-base md:text-2xl mb-1 uppercase">Available</h3>
-          <span className="inline-block bg-background px-2 py-1 comic-border font-bold uppercase hover:bg-primary hover:text-white transition-colors cursor-pointer text-[10px] md:text-sm">Hire</span>
+          <a href="mailto:dipanjanbaidya2007@gmail.com" className="inline-block bg-background px-2 py-1 comic-border font-bold uppercase hover:bg-primary hover:text-white transition-colors cursor-pointer text-[10px] md:text-sm">
+            Hire
+          </a>
         </div>
 
         {/* Card 4 - Skillset Redesigned */}
@@ -278,6 +470,14 @@ export default function Home() {
 
         {/* Card 5 - Connect Widget */}
         <div className="col-span-1 md:col-span-2 bg-tertiary text-white comic-border p-4 md:p-8 flex flex-col justify-between group overflow-hidden relative min-h-[250px] hover:shadow-[0_0_50px_rgba(0,88,190,0.6)] transition-all duration-500">
+          {/* Ace of Spades */}
+          <PlayingCard 
+            suit="♠" 
+            value="A" 
+            rotation={25} 
+            className="w-10 h-14 md:w-16 md:h-24 -top-4 -right-4 md:-top-6 md:-right-6" 
+          />
+
           <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
           <div className="absolute inset-0 halftone-white-bg opacity-20 pointer-events-none" />
           
@@ -289,51 +489,104 @@ export default function Home() {
           </div>
 
           <div className="flex flex-wrap gap-4 md:gap-8 relative z-10">
-            {profile?.social_links?.instagram && (
-              <a 
-                href={profile.social_links.instagram} 
-                target="_blank" 
-                rel="noreferrer" 
-                className="flex items-center gap-2 group/link hover:-translate-y-1 transition-transform"
-              >
-                <div className="bg-background p-2 md:p-3 comic-border text-on-background group-hover/link:bg-primary group-hover/link:text-white transition-colors">
-                  <Instagram size={20} className="md:w-6 md:h-6" />
-                </div>
-                <span className="font-black uppercase text-[10px] md:text-xs">Instagram</span>
-              </a>
-            )}
-            {profile?.social_links?.linkedin && (
-              <a 
-                href={profile.social_links.linkedin} 
-                target="_blank" 
-                rel="noreferrer" 
-                className="flex items-center gap-2 group/link hover:-translate-y-1 transition-transform"
-              >
-                <div className="bg-background p-2 md:p-3 comic-border text-on-background group-hover/link:bg-primary group-hover/link:text-white transition-colors">
-                  <Linkedin size={20} className="md:w-6 md:h-6" />
-                </div>
-                <span className="font-black uppercase text-[10px] md:text-xs">LinkedIn</span>
-              </a>
-            )}
-            {profile?.social_links?.github && (
-              <a 
-                href={profile.social_links.github} 
-                target="_blank" 
-                rel="noreferrer" 
-                className="flex items-center gap-2 group/link hover:-translate-y-1 transition-transform"
-              >
-                <div className="bg-background p-2 md:p-3 comic-border text-on-background group-hover/link:bg-primary group-hover/link:text-white transition-colors">
-                  <Github size={20} className="md:w-6 md:h-6" />
-                </div>
-                <span className="font-black uppercase text-[10px] md:text-xs">GitHub</span>
-              </a>
-            )}
+            <a 
+              href="https://www.instagram.com/xom669" 
+              target="_blank" 
+              rel="noreferrer" 
+              className="flex items-center gap-2 group/link hover:-translate-y-1 transition-transform"
+            >
+              <div className="bg-background p-2 md:p-3 comic-border text-on-background group-hover/link:bg-primary group-hover/link:text-white transition-colors">
+                <Instagram size={20} className="md:w-6 md:h-6" />
+              </div>
+              <span className="font-black uppercase text-[10px] md:text-xs">Instagram</span>
+            </a>
+            
+            <a 
+              href="https://www.linkedin.com/in/dipanjanbaidya/" 
+              target="_blank" 
+              rel="noreferrer" 
+              className="flex items-center gap-2 group/link hover:-translate-y-1 transition-transform"
+            >
+              <div className="bg-background p-2 md:p-3 comic-border text-on-background group-hover/link:bg-primary group-hover/link:text-white transition-colors">
+                <Linkedin size={20} className="md:w-6 md:h-6" />
+              </div>
+              <span className="font-black uppercase text-[10px] md:text-xs">LinkedIn</span>
+            </a>
+
+            <a 
+              href="https://github.com/xom669" 
+              target="_blank" 
+              rel="noreferrer" 
+              className="flex items-center gap-2 group/link hover:-translate-y-1 transition-transform"
+            >
+              <div className="bg-background p-2 md:p-3 comic-border text-on-background group-hover/link:bg-primary group-hover/link:text-white transition-colors">
+                <Github size={20} className="md:w-6 md:h-6" />
+              </div>
+              <span className="font-black uppercase text-[10px] md:text-xs">GitHub</span>
+            </a>
           </div>
         </div>
-      </section>
+      </motion.section>
+
+      {/* Emergency Protocol Widget - Dedicated Section */}
+      <motion.section 
+        initial={{ opacity: 0, scale: 0.9 }}
+        whileInView={{ opacity: 1, scale: 1 }}
+        viewport={{ once: true }}
+        className="w-full flex justify-center py-4"
+      >
+        <div className="max-w-md w-full bg-red-700 comic-border p-8 relative overflow-visible group/boom-widget">
+          {/* Top Right Caution Icon - Stretching out */}
+          <div className="absolute -top-6 -right-6 md:-top-10 md:-right-10 bg-yellow-400 p-2 md:p-4 comic-border rotate-12 z-20 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            <AlertTriangle className="text-black w-8 h-8 md:w-12 md:h-12" />
+          </div>
+
+          {/* Halftone texture */}
+          <div className="absolute inset-0 halftone-bg opacity-20 pointer-events-none" />
+
+          <div className="relative z-10 flex flex-col items-center text-center">
+            <h3 className="font-black text-white text-3xl md:text-4xl uppercase italic mb-2 drop-shadow-[2px_2px_0px_rgba(0,0,0,1)]">
+              Press for a BOOM
+            </h3>
+            <p className="text-white/90 font-bold uppercase text-[10px] md:text-sm mb-8 tracking-[0.2em] bg-black/20 px-4 py-1 rounded-full">
+              CAUTION: HIGH VOLTAGE CREATIVITY
+            </p>
+
+            <motion.button
+              whileHover={{ scale: 1.1, rotate: -2 }}
+              whileTap={{ y: 20 }}
+              onClick={handleBoom}
+              className="relative w-24 h-28 flex flex-col items-center justify-end group cursor-pointer"
+            >
+              {/* Dynamite Plunger Handle */}
+              <div className="w-20 h-4 bg-on-background comic-border group-hover:bg-yellow-400 transition-colors shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" />
+              <div className="w-4 h-16 bg-on-background comic-border group-hover:bg-yellow-400 transition-colors shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" />
+              {/* The "Box" */}
+              <div className="w-24 h-16 bg-on-background comic-border flex items-center justify-center -mb-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                <Bomb size={32} className="text-red-600 animate-pulse" />
+              </div>
+            </motion.button>
+
+            <div className="mt-8 flex gap-3">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className={cn(
+                  "w-2 h-2 rounded-full",
+                  i % 2 === 0 ? "bg-yellow-400" : "bg-black"
+                )} />
+              ))}
+            </div>
+          </div>
+        </div>
+      </motion.section>
 
       {/* Decorative Widgets Section */}
-      <section className="grid grid-cols-1 md:grid-cols-12 gap-8 mt-12">
+      <motion.section 
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-100px" }}
+        transition={{ duration: 0.6 }}
+        className="grid grid-cols-1 md:grid-cols-12 gap-8 mt-12"
+      >
         {/* Ticker Widget */}
         <div className="md:col-span-12 bg-on-background text-background py-4 flex overflow-hidden comic-border rotate-1">
           <motion.div 
@@ -353,7 +606,16 @@ export default function Home() {
         </div>
 
         {/* Status Widget */}
-        <div className="md:col-span-4 bg-secondary-container p-6 comic-border flex flex-col gap-4 -rotate-2">
+        <div className="md:col-span-4 bg-secondary-container p-6 comic-border flex flex-col gap-4 -rotate-2 relative">
+          {/* King of Hearts */}
+          <PlayingCard 
+            suit="♥️" 
+            value="K" 
+            isRed 
+            rotation={15} 
+            className="w-10 h-14 md:w-16 md:h-24 -bottom-6 -right-2 md:-bottom-10 md:-right-4" 
+          />
+
           <h3 className="font-black uppercase text-xl border-b-2 border-on-background pb-2">System Status</h3>
           <div className="space-y-3 font-bold text-sm">
             <div className="flex justify-between">
@@ -402,7 +664,8 @@ export default function Home() {
           </div>
           <p className="text-center mt-6 font-bold uppercase text-xs opacity-40">Digital Artifacts Collection V1.0</p>
         </div>
-      </section>
+      </motion.section>
+      </div>
     </div>
   );
 }

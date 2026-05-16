@@ -59,7 +59,13 @@ export default function Work() {
           <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin comic-border" />
         </div>
       ) : (
-        <section className="grid grid-cols-1 md:grid-cols-12 gap-8 relative">
+        <motion.section 
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.6 }}
+          className="grid grid-cols-1 md:grid-cols-12 gap-8 relative"
+        >
           {projects.length === 0 ? (
             <div className="col-span-12 text-center py-20 comic-border bg-surface">
               <h2 className="font-black text-2xl uppercase">No projects found in the sketchbook yet!</h2>
@@ -121,7 +127,7 @@ export default function Work() {
               </article>
             ))
           )}
-        </section>
+        </motion.section>
       )}
 
       {/* Floating Action Button */}

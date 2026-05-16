@@ -22,7 +22,7 @@
 
 @layer base {
   body {
-    @apply bg-background text-on-background antialiased;
+    @apply bg-background text-on-background antialiased overflow-x-hidden;
     background-image: radial-gradient(#e4beba 1px, transparent 1px);
     background-size: 8px 8px;
   }

@@ -26,7 +26,13 @@ export default function About() {
   return (
     <div className="p-8 md:p-12 max-w-7xl mx-auto w-full flex flex-col gap-12">
       {/* Header Panel */}
-      <header className="comic-border bg-tertiary text-white p-8 md:p-12 -rotate-1 relative overflow-hidden group">
+      <motion.header 
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-100px" }}
+        transition={{ duration: 0.6 }}
+        className="comic-border bg-tertiary text-white p-8 md:p-12 -rotate-1 relative overflow-hidden group"
+      >
         <div className="absolute inset-0 bg-white/10 starburst opacity-20 pointer-events-none group-hover:animate-[spin_60s_linear_infinite]" />
         
         <div className="relative z-10 flex flex-col items-center text-center">
@@ -43,12 +49,18 @@ export default function About() {
             {bio}
           </p>
         </div>
-      </header>
+      </motion.header>
 
       {/* Comic Grid */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
         {/* Panel 1: The Spark */}
-        <section className="col-span-1 md:col-span-7 comic-border bg-secondary-container p-6 relative flex flex-col justify-between group">
+        <motion.section 
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.6 }}
+          className="col-span-1 md:col-span-7 comic-border bg-secondary-container p-6 relative flex flex-col justify-between group"
+        >
           <div className="absolute -top-3 right-4 bg-background text-on-background font-bold px-3 py-1 border-2 border-black rotate-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] z-10">THE SPARK...</div>
           <h2 className="font-black text-3xl md:text-5xl uppercase mb-4 leading-tight">A Humble Beginning</h2>
           <div className="flex flex-col md:flex-row gap-6 items-center">
@@ -64,10 +76,16 @@ export default function About() {
               <div className="absolute inset-0 bg-halftone-pattern opacity-40 mix-blend-multiply pointer-events-none" />
             </div>
           </div>
-        </section>
+        </motion.section>
 
         {/* Panel 2: The Training */}
-        <section className="col-span-1 md:col-span-5 comic-border bg-tertiary-container p-6 relative overflow-hidden rotate-1 group">
+        <motion.section 
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.6 }}
+          className="col-span-1 md:col-span-5 comic-border bg-tertiary-container p-6 relative overflow-hidden rotate-1 group"
+        >
           <div className="absolute inset-0 halftone-bg opacity-20 pointer-events-none" />
           <div className="relative z-10 h-full flex flex-col">
             <div className="bg-primary text-white font-bold px-3 py-1 inline-block border-2 border-black -rotate-2 w-max mb-4">YEARS OF LEARNING</div>
@@ -79,10 +97,16 @@ export default function About() {
               <a href="mailto:dipanjanbaidya2007@gmail.com" className="bg-secondary-container text-on-background font-black text-xl px-4 py-2 border-4 border-black rotate-6 hover:scale-125 transition-transform cursor-pointer">HIRE ME!</a>
             </div>
           </div>
-        </section>
+        </motion.section>
 
         {/* Panel 3: The Conflict */}
-        <section className="col-span-1 md:col-span-12 comic-border bg-primary text-white p-8 md:p-12 relative flex flex-col md:flex-row items-center gap-8 -rotate-1 group">
+        <motion.section 
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.6 }}
+          className="col-span-1 md:col-span-12 comic-border bg-primary text-white p-8 md:p-12 relative flex flex-col md:flex-row items-center gap-8 -rotate-1 group"
+        >
           <motion.div 
             whileHover={{ scale: 1.1 }}
             className="absolute -top-6 left-1/2 -translate-x-1/2 bg-red-600 text-white font-black text-3xl px-6 py-2 border-4 border-black starburst z-20"
@@ -102,10 +126,16 @@ export default function About() {
               My mission is to help startups and creators bridge the gap between their ideas and reality. By continuously improving my skills in design and tech, I forge products that don't just look good, but solve real problems.
             </p>
           </div>
-        </section>
+        </motion.section>
 
         {/* Panel 4: Power-Ups */}
-        <section className="col-span-1 md:col-span-12 mt-8">
+        <motion.section 
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.6 }}
+          className="col-span-1 md:col-span-12 mt-8"
+        >
           <h2 className="font-black text-3xl uppercase mb-6 inline-block bg-secondary-container text-on-background px-6 py-2 border-4 border-black shadow-[6px_6px_0px_0px_#1b1b1c] -rotate-2">Current Power-Ups</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
@@ -120,12 +150,12 @@ export default function About() {
                 </div>
                 <span className="font-bold uppercase text-sm">{skill.name}</span>
                 <div className="w-full h-4 border-2 border-black bg-background relative overflow-hidden mt-2">
-                  <div className={`absolute top-0 left-0 h-full w-[${90 - i * 10}%] ${skill.color} halftone-bg`} style={{ width: `${90 - i * 5}%` }} />
+                  <div className={`absolute top-0 left-0 h-full ${skill.color} halftone-bg`} style={{ width: `${90 - i * 5}%` }} />
                 </div>
               </div>
             ))}
           </div>
-        </section>
+        </motion.section>
       </div>
     </div>
   );
