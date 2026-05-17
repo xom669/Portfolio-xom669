@@ -408,28 +408,34 @@ export default function Home() {
         className="grid grid-cols-1 md:grid-cols-3 gap-8"
       >
         {/* Card 1 */}
-        <Link to="/work" className="col-span-1 md:col-span-2 bg-background comic-border flex flex-col group h-full relative cursor-pointer hover:shadow-[4px_4px_0px_0px_#1b1b1c] transition-all">
-          {/* Ace of Hearts */}
-          <PlayingCard 
-            suit="♥️" 
-            value="A" 
-            isRed 
-            rotation={-8} 
-            className="w-8 h-12 md:w-14 md:h-20 -bottom-4 -left-4 md:-bottom-8 md:-left-8" 
-          />
+        {projects.length > 0 ? (
+          <Link to={`/work/${projects[0].id}`} className="col-span-1 md:col-span-2 bg-background comic-border flex flex-col group h-full relative cursor-pointer hover:shadow-[4px_4px_0px_0px_#1b1b1c] transition-all">
+            {/* Ace of Hearts */}
+            <PlayingCard 
+              suit="♥️" 
+              value="A" 
+              isRed 
+              rotation={-8} 
+              className="w-8 h-12 md:w-14 md:h-20 -bottom-4 -left-4 md:-bottom-8 md:-left-8" 
+            />
 
-          <div className="bg-primary text-white font-bold uppercase p-2 md:p-3 border-b-4 border-on-background flex justify-between items-center text-xs md:text-base">
-            <span>Recent Mission</span>
-            <Star size={14} className="group-hover:rotate-180 transition-transform duration-500" />
-          </div>
-          <div className="p-3 md:p-6 flex-grow flex flex-col justify-between">
-            <h3 className="font-black text-lg md:text-4xl mb-1 md:mb-4">The Cosmic Ink Series</h3>
-            <p className="mb-2 md:mb-6 opacity-80 text-xs md:text-base">Brutalist exploration of space.</p>
-            <div className="w-full h-2 md:h-4 border-2 md:border-4 border-on-background relative overflow-hidden bg-background">
-              <div className="absolute top-0 left-0 h-full bg-secondary-container w-3/4 halftone-bg" />
+            <div className="bg-primary text-white font-bold uppercase p-2 md:p-3 border-b-4 border-on-background flex justify-between items-center text-xs md:text-base">
+              <span>Recent Mission</span>
+              <Star size={14} className="group-hover:rotate-180 transition-transform duration-500" />
             </div>
+            <div className="p-3 md:p-6 flex-grow flex flex-col justify-between">
+              <h3 className="font-black text-lg md:text-4xl mb-1 md:mb-4">{projects[0].title}</h3>
+              <p className="mb-2 md:mb-6 opacity-80 text-xs md:text-base line-clamp-2">{projects[0].description}</p>
+              <div className="w-full h-2 md:h-4 border-2 md:border-4 border-on-background relative overflow-hidden bg-background">
+                <div className="absolute top-0 left-0 h-full bg-secondary-container w-3/4 halftone-bg" />
+              </div>
+            </div>
+          </Link>
+        ) : (
+          <div className="col-span-1 md:col-span-2 bg-background comic-border flex flex-col group h-full relative p-12 items-center justify-center">
+            <p className="font-black opacity-20 uppercase">No active missions</p>
           </div>
-        </Link>
+        )}
 
         {/* Card 2 */}
         <div className="col-span-1 bg-tertiary/10 comic-border p-3 md:p-6 flex flex-col justify-center items-center text-center rotate-1 hover:rotate-0 transition-all h-full relative">
@@ -479,17 +485,31 @@ export default function Home() {
         </div>
 
         {/* Card 3 - Gallery Sneak Peek */}
-        <Link to="/work" className="col-span-1 md:col-span-1 bg-on-background text-background comic-border p-0 overflow-hidden relative group h-full cursor-pointer">
-          <div className="absolute inset-0 bg-primary/20 group-hover:bg-transparent transition-colors duration-500 z-10 pointer-events-none halftone-bg opacity-50" />
-          <img 
-            alt="Abstract Art" 
-            className="w-full h-full object-cover min-h-[200px] grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700"
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuAnWXhkoo3CjV8qT-_D2I66OdRoOhVIF9PjP-duihc7JPOAsVWGiVZh1Z9S_Z_i7RdPRxClCc8wk9dW0nqrqCfqi2Jbt6PhpXbF87gjGE517ETXnQGJNTKOE3nQB1q4W7rQLkP-NSS_GtdXnaZznaknIcAcRc795-EOtpBEcdS85bg8_RPRAxWoxoesRifWsJhh76bjTyLmjiIB-yfH1QzpQSGuTEiJ8i6jJh5HMXaW0qtE47GzdaMcsZbW6-TZoxxTGGcZF1YhGfVu"
-          />
-          <div className="absolute bottom-4 left-4 z-20 bg-background text-on-background comic-border p-2 font-bold uppercase text-[10px] md:text-xs">
-            Gallery Sneak Peek
-          </div>
-        </Link>
+        {projects.length > 1 ? (
+          <Link to={`/work/${projects[1].id}`} className="col-span-1 md:col-span-1 bg-on-background text-background comic-border p-0 overflow-hidden relative group h-full cursor-pointer">
+            <div className="absolute inset-0 bg-primary/20 group-hover:bg-transparent transition-colors duration-500 z-10 pointer-events-none halftone-bg opacity-50" />
+            <img 
+              alt="Project Teaser" 
+              className="w-full h-full object-cover min-h-[200px] grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700"
+              src={projects[1].image_url}
+            />
+            <div className="absolute bottom-4 left-4 z-20 bg-background text-on-background comic-border p-2 font-bold uppercase text-[10px] md:text-xs">
+              Sneak Peek
+            </div>
+          </Link>
+        ) : (
+          <Link to="/work" className="col-span-1 md:col-span-1 bg-on-background text-background comic-border p-0 overflow-hidden relative group h-full cursor-pointer">
+            <div className="absolute inset-0 bg-primary/20 group-hover:bg-transparent transition-colors duration-500 z-10 pointer-events-none halftone-bg opacity-50" />
+            <img 
+              alt="Abstract Art" 
+              className="w-full h-full object-cover min-h-[200px] grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700"
+              src="https://lh3.googleusercontent.com/aida-public/AB6AXuAnWXhkoo3CjV8qT-_D2I66OdRoOhVIF9PjP-duihc7JPOAsVWGiVZh1Z9S_Z_i7RdPRxClCc8wk9dW0nqrqCfqi2Jbt6PhpXbF87gjGE517ETXnQGJNTKOE3nQB1q4W7rQLkP-NSS_GtdXnaZznaknIcAcRc795-EOtpBEcdS85bg8_RPRAxWoxoesRifWsJhh76bjTyLmjiIB-yfH1QzpQSGuTEiJ8i6jJh5HMXaW0qtE47GzdaMcsZbW6-TZoxxTGGcZF1YhGfVu"
+            />
+            <div className="absolute bottom-4 left-4 z-20 bg-background text-on-background comic-border p-2 font-bold uppercase text-[10px] md:text-xs">
+              Gallery Sneak Peek
+            </div>
+          </Link>
+        )}
 
         {/* Card 5 - Connect Widget */}
         <div className="col-span-1 md:col-span-2 bg-tertiary text-white comic-border p-4 md:p-8 flex flex-col justify-between group overflow-hidden relative min-h-[250px] hover:shadow-[0_0_50px_rgba(0,88,190,0.6)] transition-all duration-500">
