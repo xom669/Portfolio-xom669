@@ -240,14 +240,44 @@ export default function Admin() {
     }
   };
 
-  const handleDeleteProject = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this panel?')) return;
+  const handleDeleteProject = async (id: string | number) => {
+    if (!id) return;
+    if (!confirm('Are you sure you want to delete this panel? This cannot be undone.')) return;
+    
+    setLoading(true);
     try {
       const { error } = await supabase.from('projects').delete().eq('id', id);
       if (error) throw error;
-      fetchProjects();
+      
+      // Update local state immediately for better UX
+      setProjects(prev => prev.filter(p => p.id !== id));
+      
+      alert('Project deleted successfully!');
     } catch (err: any) {
-      alert('Delete failed: ' + err.message);
+      console.error('Delete error:', err);
+      alert('Delete failed: ' + (err.message || 'Unknown error'));
+      // Refresh list to be sure
+      fetchProjects();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteSkill = async (id: string | number) => {
+    if (!id) return;
+    if (!confirm('Permanently remove this skill?')) return;
+    
+    setLoading(true);
+    try {
+      const { error } = await supabase.from('skills').delete().eq('id', id);
+      if (error) throw error;
+      
+      setSkills(prev => prev.filter(s => s.id !== id));
+    } catch (err: any) {
+      alert('Skill deletion failed: ' + err.message);
+      fetchSkills();
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -564,18 +594,27 @@ export default function Admin() {
                     {skills.filter(s => s.category === category).map((skill) => (
                       <div key={skill.id} className="flex items-center justify-between p-3 bg-surface comic-border shadow-[4px_4px_0px_0px_rgba(27,27,28,1)]">
                         <span className="font-bold uppercase text-sm">{skill.name}</span>
-                        <button 
-                          onClick={() => toggleSkill(skill.id, skill.enabled)}
-                          className={cn(
-                            "w-12 h-6 flex items-center p-1 rounded-full bg-surface border-2 border-on-background transition-colors",
-                            skill.enabled ? "bg-primary" : "bg-on-background/20"
-                          )}
-                        >
-                          <div className={cn(
-                            "w-3 h-3 rounded-full bg-white transition-all transform",
-                            skill.enabled ? "translate-x-6" : "translate-x-0"
-                          )} />
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button 
+                            onClick={() => toggleSkill(skill.id, skill.enabled)}
+                            className={cn(
+                              "w-12 h-6 flex items-center p-1 rounded-full bg-surface border-2 border-on-background transition-colors",
+                              skill.enabled ? "bg-primary" : "bg-on-background/20"
+                            )}
+                          >
+                            <div className={cn(
+                              "w-3 h-3 rounded-full bg-white transition-all transform",
+                              skill.enabled ? "translate-x-6" : "translate-x-0"
+                            )} />
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteSkill(skill.id)}
+                            className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
+                            title="Delete Skill"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </div>
                     ))}
                     {skills.filter(s => s.category === category).length === 0 && (
