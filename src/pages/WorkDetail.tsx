@@ -6,6 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion } from 'motion/react';
+import { Helmet } from 'react-helmet-async';
 import { ArrowLeft, ExternalLink, ImageIcon } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Project } from '../types';
@@ -55,6 +56,13 @@ export default function WorkDetail() {
 
   return (
     <div className="min-h-screen bg-halftone p-8 md:p-12">
+      <Helmet>
+        <title>{`${project.title} | Dipanjan Baidya Portfolio`}</title>
+        <meta name="description" content={project.description} />
+        <meta property="og:title" content={`${project.title} | Dipanjan Baidya`} />
+        <meta property="og:description" content={project.description} />
+        <meta property="og:image" content={project.image_url} />
+      </Helmet>
       <div className="max-w-7xl mx-auto space-y-12">
         <Link 
           to="/work" 

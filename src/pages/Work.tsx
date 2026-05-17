@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
+import { Helmet } from 'react-helmet-async';
 import { Mail, ExternalLink, Eye } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
@@ -37,6 +38,12 @@ export default function Work() {
 
   return (
     <div className="p-8 md:p-12 max-w-7xl mx-auto w-full flex flex-col gap-16 relative">
+      <Helmet>
+        <title>Project Sketchbook | Selected Works by Dipanjan Baidya</title>
+        <meta name="description" content="A collection of recent visual explorations, digital art, and development projects by Dipanjan Baidya. Built with ink, caffeine, and brutalism." />
+        <meta property="og:title" content="Project Sketchbook | Dipanjan Baidya" />
+        <meta property="og:description" content="Explore selected digital works and creative experiments by Dipanjan Baidya." />
+      </Helmet>
       <header className="relative text-center flex flex-col items-center justify-center py-12">
         <motion.div 
           initial={{ scale: 0, rotate: 12 }}

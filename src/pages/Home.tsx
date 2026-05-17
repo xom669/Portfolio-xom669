@@ -5,6 +5,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { Helmet } from 'react-helmet-async';
 import { ArrowRight, Star, Instagram, Linkedin, Github, Bomb, AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { QuoteWidget } from '../components/QuoteWidget';
@@ -140,6 +141,12 @@ export default function Home() {
 
   return (
     <div className="p-8 md:p-12 max-w-7xl mx-auto w-full flex flex-col gap-12 relative min-h-screen overflow-x-hidden">
+      <Helmet>
+        <title>Dipanjan Baidya | Portfolio & Creative Sketchbook</title>
+        <meta name="description" content="Explore the creative portfolio of Dipanjan Baidya. A brutalist comic-style sketchbook featuring panels, digital work, and a custom sketchbook CMS." />
+        <meta property="og:title" content="Dipanjan Baidya | Portfolio & Creative Sketchbook" />
+        <meta property="og:description" content="Explore the creative portfolio of Dipanjan Baidya. A brutalist comic-style sketchbook featuring digital work and creative panels." />
+      </Helmet>
       <AnimatePresence>
         {isExploding && (
           <motion.div 
@@ -244,7 +251,7 @@ export default function Home() {
           <div className="flex-shrink-0 relative order-1 md:order-2">
             <div className="w-48 h-48 md:w-80 md:h-80 bg-tertiary-container comic-border-primary rounded-full overflow-hidden relative group/avatar hover:shadow-[0_0_50px_-5px_rgba(16,185,129,0.7)] transition-all">
               <img 
-                alt="Profile" 
+                alt="Dipanjan Baidya - Graphic & Web Designer Portfolio Profile" 
                 className="w-full h-full object-cover filter contrast-125 group-hover/avatar:scale-105 transition-all duration-500"
                 src={pfp} 
                 // @ts-ignore - fetchPriority is a valid attribute for performance optimization

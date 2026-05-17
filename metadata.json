@@ -1,6 +1,8 @@
 {
-  "name": "Dipanjan's Portfolio",
-  "description": "A brutalist comic-style sketchbook portfolio with a custom CMS, built with React and Supabase.",
+  "name": "Dipanjan Baidya | Portfolio & Creative Sketchbook",
+  "description": "Explore the creative portfolio of Dipanjan Baidya. A brutalist comic-style sketchbook featuring panels, digital work, and a custom sketchbook CMS.",
   "requestFramePermissions": [],
-  "majorCapabilities": []
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

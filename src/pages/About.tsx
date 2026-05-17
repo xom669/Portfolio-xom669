@@ -5,6 +5,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
+import { Helmet } from 'react-helmet-async';
 import { Search, Code, Brush, Zap } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
@@ -25,6 +26,12 @@ export default function About() {
 
   return (
     <div className="p-8 md:p-12 max-w-7xl mx-auto w-full flex flex-col gap-12">
+      <Helmet>
+        <title>Origin Story | About Dipanjan Baidya</title>
+        <meta name="description" content="Learn about Dipanjan Baidya, a 19-year-old designer and developer specializing in branding, UI concepts, and custom web projects." />
+        <meta property="og:title" content="Origin Story | Dipanjan Baidya" />
+        <meta property="og:description" content="The story behind the brutalist sketchbook and the creative mind of Dipanjan Baidya." />
+      </Helmet>
       {/* Header Panel */}
       <motion.header 
         initial={{ opacity: 0, y: 30 }}
@@ -71,7 +78,7 @@ export default function About() {
               <img 
                 src={pfp} 
                 className="object-cover w-full h-full filter contrast-125 grayscale hover:grayscale-0 transition-all duration-500"
-                alt="Profile"
+                alt="Dipanjan Baidya - Artist Origin Story Profile"
               />
               <div className="absolute inset-0 bg-halftone-pattern opacity-40 mix-blend-multiply pointer-events-none" />
             </div>

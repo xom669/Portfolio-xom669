@@ -158,11 +158,15 @@ export default function Admin() {
   };
 
   const toggleSkill = async (id: string, currentStatus: boolean) => {
+    // Optimistic update
+    setSkills(prev => prev.map(s => s.id === id ? { ...s, enabled: !currentStatus } : s));
+    
     try {
       const { error } = await supabase.from('skills').update({ enabled: !currentStatus }).eq('id', id);
       if (error) throw error;
-      fetchSkills();
     } catch (err: any) {
+      // Revert
+      setSkills(prev => prev.map(s => s.id === id ? { ...s, enabled: currentStatus } : s));
       alert('Update failed: ' + err.message);
     }
   };
@@ -227,6 +231,10 @@ export default function Admin() {
 
   const toggleProjectStatus = async (project: any) => {
     const newStatus = project.status === 'published' ? 'draft' : 'published';
+    
+    // Optimistic update
+    setProjects(prev => prev.map(p => p.id === project.id ? { ...p, status: newStatus } : p));
+    
     try {
       const { error } = await supabase
         .from('projects')
@@ -234,8 +242,9 @@ export default function Admin() {
         .eq('id', project.id);
       
       if (error) throw error;
-      fetchProjects();
     } catch (err: any) {
+      // Revert on error
+      setProjects(prev => prev.map(p => p.id === project.id ? { ...p, status: project.status } : p));
       alert('Toggle failed: ' + err.message);
     }
   };
@@ -244,19 +253,19 @@ export default function Admin() {
     if (!id) return;
     if (!confirm('Are you sure you want to delete this panel? This cannot be undone.')) return;
     
+    const projectToDelete = projects.find(p => p.id === id);
     setLoading(true);
+    
     try {
       const { error } = await supabase.from('projects').delete().eq('id', id);
       if (error) throw error;
       
-      // Update local state immediately for better UX
+      // Update local state immediately
       setProjects(prev => prev.filter(p => p.id !== id));
-      
       alert('Project deleted successfully!');
     } catch (err: any) {
       console.error('Delete error:', err);
       alert('Delete failed: ' + (err.message || 'Unknown error'));
-      // Refresh list to be sure
       fetchProjects();
     } finally {
       setLoading(false);
