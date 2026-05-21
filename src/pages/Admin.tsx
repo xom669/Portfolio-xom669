@@ -8,6 +8,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Project, Profile, Skill } from '../types';
 import { safeSetItem, safeGetItem } from '../lib/cache';
+import { compressAndResizeImage } from '../lib/imageOptimizer';
 import { 
   LayoutDashboard, 
   Palette, 
@@ -760,18 +761,20 @@ export default function Admin() {
                         <input 
                           type="file"
                           accept="image/*"
-                          onChange={(e) => {
+                          onChange={async (e) => {
                             const file = e.target.files?.[0];
                             if (file) {
-                              if (file.size > 2 * 1024 * 1024) {
-                                alert('File too large! Keep it under 2MB for local storage.');
-                                return;
+                              try {
+                                const optimizedBase64 = await compressAndResizeImage(file, 400, 0.8);
+                                setProfileForm({...profileForm, pfp_url: optimizedBase64});
+                              } catch (err) {
+                                console.error('PFP optimization error:', err);
+                                const reader = new FileReader();
+                                reader.onloadend = () => {
+                                  setProfileForm({...profileForm, pfp_url: reader.result as string});
+                                };
+                                reader.readAsDataURL(file);
                               }
-                              const reader = new FileReader();
-                              reader.onloadend = () => {
-                                setProfileForm({...profileForm, pfp_url: reader.result as string});
-                              };
-                              reader.readAsDataURL(file);
                             }
                           }}
                           className="absolute inset-0 opacity-0 cursor-pointer"
@@ -873,18 +876,20 @@ export default function Admin() {
                       <input 
                         type="file"
                         accept="image/*"
-                        onChange={(e) => {
+                        onChange={async (e) => {
                           const file = e.target.files?.[0];
                           if (file) {
-                            if (file.size > 2 * 1024 * 1024) {
-                              alert('File too large! Keep it under 2MB.');
-                              return;
+                            try {
+                              const optimizedBase64 = await compressAndResizeImage(file, 1080, 0.75);
+                              setNewProject({...newProject, image_url: optimizedBase64});
+                            } catch (err) {
+                              console.error('Main image optimization error:', err);
+                              const reader = new FileReader();
+                              reader.onloadend = () => {
+                                setNewProject({...newProject, image_url: reader.result as string});
+                              };
+                              reader.readAsDataURL(file);
                             }
-                            const reader = new FileReader();
-                            reader.onloadend = () => {
-                              setNewProject({...newProject, image_url: reader.result as string});
-                            };
-                            reader.readAsDataURL(file);
                           }
                         }}
                         className="absolute inset-0 opacity-0 cursor-pointer"
@@ -916,17 +921,18 @@ export default function Admin() {
                             const fileArray = Array.from(files) as File[];
                             
                             for (const file of fileArray) {
-                              if (file.size > 2 * 1024 * 1024) {
-                                alert(`${file.name} is too large! Skipping.`);
-                                continue;
+                              try {
+                                const optimized = await compressAndResizeImage(file, 1080, 0.75);
+                                newBase64Images.push(optimized);
+                              } catch (err) {
+                                console.error('Sub-image optimization error:', err);
+                                const base64 = await new Promise<string>((resolve) => {
+                                  const reader = new FileReader();
+                                  reader.onloadend = () => resolve(reader.result as string);
+                                  reader.readAsDataURL(file);
+                                });
+                                newBase64Images.push(base64);
                               }
-                              
-                              const base64 = await new Promise<string>((resolve) => {
-                                const reader = new FileReader();
-                                reader.onloadend = () => resolve(reader.result as string);
-                                reader.readAsDataURL(file);
-                              });
-                              newBase64Images.push(base64);
                             }
                             
                             setNewProject(prev => ({

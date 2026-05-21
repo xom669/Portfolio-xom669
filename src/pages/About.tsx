@@ -77,6 +77,8 @@ export default function About() {
             <div className="w-full md:w-1/2 aspect-square bg-background border-4 border-black relative overflow-hidden group-hover:scale-105 transition-transform">
               <img 
                 src={pfp} 
+                loading="lazy"
+                decoding="async"
                 className="object-cover w-full h-full filter contrast-125 grayscale hover:grayscale-0 transition-all duration-500"
                 alt="Dipanjan Baidya - Artist Origin Story Profile"
               />
@@ -123,6 +125,8 @@ export default function About() {
           <div className="w-full md:w-1/3 aspect-square bg-background border-4 border-black relative overflow-hidden group-hover:scale-105 transition-transform">
             <img 
               src="https://lh3.googleusercontent.com/aida-public/AB6AXuAMGGYER4Nqj_Xl1zs9t2yyAVEwLHnrLZlIUSA99SAS0MPW4n_964IQAiJsNGAgbYP5Ekkopag3pHxGkHBsXhGURySNTfuSocM8Lt2bLTC4vl1Ej3WawnAY-LybdMUAuyp4RrqLOUHCHfuO1V7odY6dVnS_kwr88gvRi0CgJjg6I1i7cNLbBll-QX8k7kpgYwcRKMjKLZSPO3avBM2cCz3coRnq1GC2xd0Gu7wmrobmvuaDvJNhtv3Ezg3xMueogVQnfMK4jhd5Hmkg" 
+              loading="lazy"
+              decoding="async"
               className="object-cover w-full h-full mix-blend-multiply opacity-80 group-hover:opacity-100 transition-opacity"
               alt="Explosion"
             />

@@ -67,35 +67,42 @@ interface FallingWrapperProps {
 }
 
 const FallingWrapper = ({ children, index, isActive }: FallingWrapperProps) => {
-  // Generate pseudo-random constants per index to make the sections fall in different random directions and timings
-  const xValues = [-350, -100, 400, -500, 450, 150, -250, 300];
-  const rotValues = [-120, 60, -90, 180, -45, 135, -75, 110];
-  const durationValues = [0.95, 1.2, 1.05, 1.3, 0.9, 1.15, 1.1, 1.0];
-  const yStartVal = [45, -15, 30, -25, 60, 15, -20, 35];
-
+  // Generate highly chaotic pseudo-random constants per index in different random directions, large offsets, wobbly off-axis rotations
+  const xValues = [-850, 450, -500, 950, -650, 300, -400, 750];
+  const rotValues = [-1080, 720, -900, 1440, -540, 1080, -720, 1260]; // Multiple complete 360-degree spins
+  const durationValues = [1.1, 1.4, 1.25, 1.5, 1.05, 1.35, 1.3, 1.2];
+  
   const randomX = xValues[index % xValues.length];
   const randomRotate = rotValues[index % rotValues.length];
-  const randomDelay = (index % 5) * 0.08 + 0.02; // Small stagger
+  const randomDelay = (index % 5) * 0.12 + 0.04; // Dramatic staggered cascading fall
   const randomDuration = durationValues[index % durationValues.length];
-  const randomYStart = yStartVal[index % yStartVal.length];
+  
+  // Choose an off-center origin point for wobbly cartoon rotation dynamics
+  const originX = index % 2 === 0 ? 0.25 : 0.75;
+  const originY = index % 3 === 0 ? 0.35 : 0.65;
 
   return (
     <motion.div
       animate={
         isActive
           ? {
-              y: [randomYStart, randomYStart + 120, 1600],
-              x: [0, randomX * 0.15, randomX],
-              rotate: [0, randomRotate * 0.15, randomRotate],
-              opacity: [1, 0.95, 0],
-              filter: ["blur(0px)", "blur(1px)", "blur(12px)"],
+              // Pop slightly upwards first for comedic cartoon physical weight, then plunge down off screen
+              y: [0, -140 * (index % 2 === 0 ? 1 : 0.6), 1800],
+              x: [0, randomX * 0.18, randomX],
+              rotate: [0, randomRotate * 0.18, randomRotate],
+              scale: [1, 1.15, 0.35],
+              skewX: [0, index % 2 === 0 ? 20 : -20, 0],
+              filter: ["blur(0px)", "blur(2px)", "blur(18px)"],
+              opacity: [1, 1, 0]
             }
           : {
               y: 0,
               x: 0,
               rotate: 0,
-              opacity: 1,
+              scale: 1,
+              skewX: 0,
               filter: "blur(0px)",
+              opacity: 1
             }
       }
       transition={
@@ -103,14 +110,14 @@ const FallingWrapper = ({ children, index, isActive }: FallingWrapperProps) => {
           ? {
               duration: randomDuration,
               delay: randomDelay,
-              ease: [0.6, -0.28, 0.735, 0.045], // Gravity fall
+              ease: [0.34, 1.36, 0.64, 1.0], // Super premium snappy snap spring-backed ease curve
             }
           : {
-              duration: 0.6,
+              duration: 0.8,
               ease: "easeOut",
             }
       }
-      style={{ originX: 0.5, originY: 0.5 }}
+      style={{ originX, originY }}
       className="w-full"
     >
       {children}
@@ -126,29 +133,26 @@ export default function Home() {
   const [boomStage, setBoomStage] = useState<'idle' | 'falling' | 'gone' | 'building'>('idle');
 
   const handleBoom = () => {
+    // Stage 1: Directly start widgets falling down with high chaos AND trigger the explosive impact particles
+    setBoomStage('falling');
     setIsExploding(true);
     
-    // Step 1: Trigger Explosion overlay for impact
+    // Stage 2: After widgets have finished cascading completely out of screen (1.5 seconds)
     setTimeout(() => {
       setIsExploding(false);
-      setBoomStage('falling');
+      setBoomStage('gone');
       
-      // Step 2: Animate widgets falling (takes 1.2s to leave screen)
+      // Stage 3: Display "everything is gone." on pristine blank screen (lasts 2.5 seconds)
       setTimeout(() => {
-        setBoomStage('gone');
+        setBoomStage('building');
         
-        // Step 3: Show "everything is gone." in the center (stay for 2.2s)
+        // Stage 4: Show "We are building, we will build again." in bold glowing red (lasts 3.5 seconds)
         setTimeout(() => {
-          setBoomStage('building');
-          
-          // Step 4: Show "We are building, we will build again." in red (stay for 3.5s)
-          setTimeout(() => {
-            // Step 5: Fade out and reset back to normal
-            setBoomStage('idle');
-          }, 3500);
-        }, 2200);
-      }, 1200);
-    }, 800);
+          // Stage 5: Restore back to pristine state gracefully
+          setBoomStage('idle');
+        }, 3500);
+      }, 2500);
+    }, 1500);
   };
 
   useEffect(() => {
@@ -306,7 +310,7 @@ export default function Home() {
       </AnimatePresence>
 
       <AnimatePresence>
-        {boomStage !== 'idle' && (
+        {(boomStage === 'gone' || boomStage === 'building') && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -548,6 +552,8 @@ export default function Home() {
                     <img 
                       src={project.image_url} 
                       alt={project.title}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover group-hover/item:scale-110 transition-transform duration-500"
                     />
                     <div className="absolute inset-0 bg-on-background/0 group-hover/item:bg-on-background/20 transition-colors" />
@@ -660,6 +666,8 @@ export default function Home() {
             <div className="absolute inset-0 bg-primary/20 group-hover:bg-transparent transition-colors duration-500 z-10 pointer-events-none halftone-bg opacity-50" />
             <img 
               alt="Project Teaser" 
+              loading="lazy"
+              decoding="async"
               className="w-full h-full object-cover min-h-[200px] grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700"
               src={projects[1].image_url}
             />
@@ -672,6 +680,8 @@ export default function Home() {
             <div className="absolute inset-0 bg-primary/20 group-hover:bg-transparent transition-colors duration-500 z-10 pointer-events-none halftone-bg opacity-50" />
             <img 
               alt="Abstract Art" 
+              loading="lazy"
+              decoding="async"
               className="w-full h-full object-cover min-h-[200px] grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700"
               src="https://lh3.googleusercontent.com/aida-public/AB6AXuAnWXhkoo3CjV8qT-_D2I66OdRoOhVIF9PjP-duihc7JPOAsVWGiVZh1Z9S_Z_i7RdPRxClCc8wk9dW0nqrqCfqi2Jbt6PhpXbF87gjGE517ETXnQGJNTKOE3nQB1q4W7rQLkP-NSS_GtdXnaZznaknIcAcRc795-EOtpBEcdS85bg8_RPRAxWoxoesRifWsJhh76bjTyLmjiIB-yfH1QzpQSGuTEiJ8i6jJh5HMXaW0qtE47GzdaMcsZbW6-TZoxxTGGcZF1YhGfVu"
             />
