@@ -318,8 +318,13 @@ export default function Admin() {
     });
     
     try {
-      const { error } = await supabase.from('projects').delete().eq('id', id);
+      const { data, error } = await supabase.from('projects').delete().eq('id', id).select();
       if (error) throw error;
+      
+      if (!data || data.length === 0) {
+        throw new Error('No records were deleted from the database. This is typically caused by Supabase Row Level Security (RLS) blocking the DELETE operation because a delete policy is missing. Please add a DELETE policy for authenticated users, or run the provided SQL setup script in your Supabase SQL Editor.');
+      }
+      
       alert('Project deleted successfully!');
     } catch (err: any) {
       console.error('Delete error:', err);
@@ -344,9 +349,16 @@ export default function Admin() {
     });
     
     try {
-      const { error } = await supabase.from('skills').delete().eq('id', id);
+      const { data, error } = await supabase.from('skills').delete().eq('id', id).select();
       if (error) throw error;
+      
+      if (!data || data.length === 0) {
+        throw new Error('No records were deleted from the database. This is typically caused by Supabase Row Level Security (RLS) blocking the DELETE operation because a delete policy is missing. Please add a DELETE policy for authenticated users, or run the provided SQL setup script in your Supabase SQL Editor.');
+      }
+      
+      alert('Skill deleted successfully!');
     } catch (err: any) {
+      console.error('Delete error:', err);
       alert('Skill deletion failed: ' + err.message);
       fetchSkills();
     } finally {
