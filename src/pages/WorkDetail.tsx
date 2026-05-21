@@ -10,6 +10,7 @@ import { Helmet } from 'react-helmet-async';
 import { ArrowLeft, ExternalLink, ImageIcon } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Project } from '../types';
+import { safeGetItem } from '../lib/cache';
 
 export default function WorkDetail() {
   const { id } = useParams<{ id: string }>();
@@ -20,6 +21,27 @@ export default function WorkDetail() {
   useEffect(() => {
     async function fetchProject() {
       if (!id) return;
+
+      // Check cache first
+      const cached = safeGetItem('projects_cache');
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached) as Project[];
+          const found = parsed.find(p => p.id === id);
+          if (found) {
+            if (found.status === 'published') {
+              setProject(found);
+              setLoading(false);
+            } else {
+              navigate('/work');
+              return;
+            }
+          }
+        } catch (e) {
+          console.error('Failed to parse cached project', e);
+        }
+      }
+
       try {
         const { data, error } = await supabase
           .from('projects')

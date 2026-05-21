@@ -10,12 +10,26 @@ import { Mail, ExternalLink, Eye } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Project } from '../types';
+import { safeSetItem, safeGetItem } from '../lib/cache';
 
 export default function Work() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Lead from cache first for instant update
+    const cached = safeGetItem('projects_cache');
+    if (cached) {
+       try {
+         const parsed = JSON.parse(cached) as Project[];
+         const publishedOnly = parsed.filter(p => p.status === 'published');
+         setProjects(publishedOnly);
+         setLoading(false);
+       } catch (e) {
+         console.error('Failed to parse cached projects:', e);
+       }
+    }
+
     async function fetchProjects() {
       try {
         const { data, error } = await supabase
@@ -26,6 +40,20 @@ export default function Work() {
         
         if (data) {
           setProjects(data as Project[]);
+
+          // Blend dynamic data back to the cache
+          const cachedAll = safeGetItem('projects_cache');
+          let blended = data as Project[];
+          if (cachedAll) {
+            try {
+              const parsedCached = JSON.parse(cachedAll) as Project[];
+              const draftCached = parsedCached.filter(p => p.status === 'draft');
+              blended = [...data as Project[], ...draftCached];
+            } catch (e) {
+              console.error(e);
+            }
+          }
+          safeSetItem('projects_cache', JSON.stringify(blended));
         }
       } catch (err) {
         console.error('Error fetching projects:', err);

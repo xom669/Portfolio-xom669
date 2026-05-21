@@ -11,6 +11,7 @@ import { Link } from 'react-router-dom';
 import { QuoteWidget } from '../components/QuoteWidget';
 import { supabase } from '../lib/supabase';
 import { Profile, Project, Skill } from '../types';
+import { safeSetItem, safeGetItem } from '../lib/cache';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -59,36 +60,128 @@ const PlayingCard = ({
   </motion.div>
 );
 
+interface FallingWrapperProps {
+  children: React.ReactNode;
+  index: number;
+  isActive: boolean;
+}
+
+const FallingWrapper = ({ children, index, isActive }: FallingWrapperProps) => {
+  // Generate pseudo-random constants per index to make the sections fall in different random directions and timings
+  const xValues = [-350, -100, 400, -500, 450, 150, -250, 300];
+  const rotValues = [-120, 60, -90, 180, -45, 135, -75, 110];
+  const durationValues = [0.95, 1.2, 1.05, 1.3, 0.9, 1.15, 1.1, 1.0];
+  const yStartVal = [45, -15, 30, -25, 60, 15, -20, 35];
+
+  const randomX = xValues[index % xValues.length];
+  const randomRotate = rotValues[index % rotValues.length];
+  const randomDelay = (index % 5) * 0.08 + 0.02; // Small stagger
+  const randomDuration = durationValues[index % durationValues.length];
+  const randomYStart = yStartVal[index % yStartVal.length];
+
+  return (
+    <motion.div
+      animate={
+        isActive
+          ? {
+              y: [randomYStart, randomYStart + 120, 1600],
+              x: [0, randomX * 0.15, randomX],
+              rotate: [0, randomRotate * 0.15, randomRotate],
+              opacity: [1, 0.95, 0],
+              filter: ["blur(0px)", "blur(1px)", "blur(12px)"],
+            }
+          : {
+              y: 0,
+              x: 0,
+              rotate: 0,
+              opacity: 1,
+              filter: "blur(0px)",
+            }
+      }
+      transition={
+        isActive
+          ? {
+              duration: randomDuration,
+              delay: randomDelay,
+              ease: [0.6, -0.28, 0.735, 0.045], // Gravity fall
+            }
+          : {
+              duration: 0.6,
+              ease: "easeOut",
+            }
+      }
+      style={{ originX: 0.5, originY: 0.5 }}
+      className="w-full"
+    >
+      {children}
+    </motion.div>
+  );
+};
+
 export default function Home() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [skills, setSkills] = useState<Skill[]>([]);
   const [isExploding, setIsExploding] = useState(false);
-  const [isEverythingGone, setIsEverythingGone] = useState(false);
+  const [boomStage, setBoomStage] = useState<'idle' | 'falling' | 'gone' | 'building'>('idle');
 
   const handleBoom = () => {
     setIsExploding(true);
     
-    // Step 1: Trigger Explosion
+    // Step 1: Trigger Explosion overlay for impact
     setTimeout(() => {
       setIsExploding(false);
-      setIsEverythingGone(true);
+      setBoomStage('falling');
       
-      // Step 2: Show "Gone" message and then fix it
+      // Step 2: Animate widgets falling (takes 1.2s to leave screen)
       setTimeout(() => {
-        setIsEverythingGone(false);
-      }, 3000);
+        setBoomStage('gone');
+        
+        // Step 3: Show "everything is gone." in the center (stay for 2.2s)
+        setTimeout(() => {
+          setBoomStage('building');
+          
+          // Step 4: Show "We are building, we will build again." in red (stay for 3.5s)
+          setTimeout(() => {
+            // Step 5: Fade out and reset back to normal
+            setBoomStage('idle');
+          }, 3500);
+        }, 2200);
+      }, 1200);
     }, 800);
   };
 
   useEffect(() => {
     // Try to load from cache first for instant UI
-    const cachedProfile = localStorage.getItem('profile_cache');
+    const cachedProfile = safeGetItem('profile_cache');
     if (cachedProfile) {
       try {
         setProfile(JSON.parse(cachedProfile));
       } catch (e) {
         console.error('Failed to parse cached profile', e);
+      }
+    }
+
+    const cachedProjects = safeGetItem('projects_cache');
+    if (cachedProjects) {
+      try {
+        const parsed = JSON.parse(cachedProjects) as Project[];
+        const publishedOnly = parsed.filter(p => p.status === 'published');
+        const shuffled = [...publishedOnly].sort(() => 0.5 - Math.random());
+        setProjects(shuffled.slice(0, 6));
+      } catch (e) {
+        console.error('Failed to parse cached projects', e);
+      }
+    }
+
+    const cachedSkills = safeGetItem('skills_cache');
+    if (cachedSkills) {
+      try {
+        const parsed = JSON.parse(cachedSkills) as Skill[];
+        const enabledOnly = parsed.filter(s => s.enabled);
+        setSkills(enabledOnly);
+      } catch (e) {
+        console.error('Failed to parse cached skills', e);
       }
     }
 
@@ -98,7 +191,7 @@ export default function Home() {
       if (profileData) {
         setProfile(profileData);
         // Update cache
-        localStorage.setItem('profile_cache', JSON.stringify(profileData));
+        safeSetItem('profile_cache', JSON.stringify(profileData));
       }
 
       // Fetch projects for the collage
@@ -111,6 +204,20 @@ export default function Home() {
         // Shuffle and take random projects
         const shuffled = [...projectsData].sort(() => 0.5 - Math.random());
         setProjects(shuffled.slice(0, 6));
+
+        // Sync with local cache
+        const cachedAll = safeGetItem('projects_cache');
+        let blended = projectsData as Project[];
+        if (cachedAll) {
+          try {
+            const parsedCached = JSON.parse(cachedAll) as Project[];
+            const draftCached = parsedCached.filter(p => p.status === 'draft');
+            blended = [...projectsData as Project[], ...draftCached];
+          } catch (e) {
+            console.error(e);
+          }
+        }
+        safeSetItem('projects_cache', JSON.stringify(blended));
       }
 
       // Fetch skills
@@ -122,8 +229,20 @@ export default function Home() {
       
       if (skillsData) {
         setSkills(skillsData);
-      } else {
-        // Fallback or empty state handling is done in render
+
+        // Sync with local cache
+        const cachedAllSkills = safeGetItem('skills_cache');
+        let blendedSkills = skillsData as Skill[];
+        if (cachedAllSkills) {
+          try {
+            const parsedCached = JSON.parse(cachedAllSkills) as Skill[];
+            const disabledCached = parsedCached.filter(s => !s.enabled);
+            blendedSkills = [...skillsData as Skill[], ...disabledCached];
+          } catch (e) {
+            console.error(e);
+          }
+        }
+        safeSetItem('skills_cache', JSON.stringify(blendedSkills));
       }
     };
     fetchData();
@@ -187,38 +306,83 @@ export default function Home() {
       </AnimatePresence>
 
       <AnimatePresence>
-        {isEverythingGone && (
-          <motion.div 
+        {boomStage !== 'idle' && (
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[90] bg-on-background flex flex-col items-center justify-center text-center p-8 overflow-hidden"
+            transition={{ duration: 0.5 }}
+            className="fixed inset-0 z-[10] bg-[#101011]"
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {(boomStage === 'gone' || boomStage === 'building') && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4 }}
+            className="fixed inset-0 z-[50] flex flex-col items-center justify-center p-8 text-center"
           >
-            <div className="absolute inset-0 halftone-bg opacity-20" />
-            <motion.div
-              initial={{ scale: 0.8, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              className="relative z-10"
-            >
-              <h2 className="text-white font-black text-2xl md:text-6xl uppercase mb-4 comic-border border-white p-6 inline-block -rotate-2">
-                Every thing is gone...
-              </h2>
-              <div className="flex items-center justify-center gap-2 mt-4 text-primary font-bold text-xl md:text-3xl animate-pulse">
-                <span>but we will fix all again</span>
+            <div className="absolute inset-0 halftone-bg opacity-10 pointer-events-none" />
+            
+            <AnimatePresence mode="wait">
+              {boomStage === 'gone' && (
                 <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                  key="gone-box"
+                  initial={{ opacity: 0, scale: 0.9, filter: "blur(8px)" }}
+                  animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+                  exit={{ opacity: 0, scale: 1.05, filter: "blur(12px)" }}
+                  transition={{ duration: 0.6, ease: "easeOut" }}
+                  className="flex flex-col items-center justify-center z-50 pointer-events-none select-none"
                 >
-                  <Star className="fill-primary" />
+                  <h2 className="text-white font-black text-3xl md:text-7xl uppercase tracking-wider p-6 border-4 border-dashed border-white/25 select-none bg-black/40 shadow-inner rounded-sm">
+                    everything is gone.
+                  </h2>
                 </motion.div>
-              </div>
-            </motion.div>
+              )}
+
+              {boomStage === 'building' && (
+                <motion.div
+                  key="building-box"
+                  initial={{ opacity: 0, scale: 0.95, y: 15 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 1.05 }}
+                  transition={{ duration: 0.6, ease: "easeOut" }}
+                  className="flex flex-col items-center justify-center max-w-2xl px-4 z-50 pointer-events-none select-none"
+                >
+                  <h2 className="text-red-500 font-extrabold text-3xl md:text-7xl uppercase tracking-tight text-center leading-none italic select-none drop-shadow-[0_0_30px_rgba(239,68,68,0.7)]">
+                    We are building,<br />we will build again.
+                  </h2>
+                  <div className="flex items-center justify-center gap-3 mt-8">
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                    >
+                      <Star size={24} className="text-red-500 fill-red-500" />
+                    </motion.div>
+                    <span className="text-red-500 font-mono tracking-widest text-xs uppercase animate-pulse">
+                      restructuring particles...
+                    </span>
+                    <motion.div
+                      animate={{ rotate: -360 }}
+                      transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                    >
+                      <Star size={24} className="text-red-500 fill-red-500" />
+                    </motion.div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <div className={cn("flex flex-col gap-12 transition-all duration-300", (isExploding || isEverythingGone) && "opacity-0 scale-95 blur-xl")}>
+      <div className="flex flex-col gap-12 relative z-[20]">
       {/* Hero Section */}
+      <FallingWrapper index={1} isActive={boomStage !== 'idle'}>
       <section className="relative comic-border p-8 md:p-12 rotate-[-1deg] group">
         {/* Glowing Moving Gradient Background */}
         <div className="absolute inset-0 bg-linear-to-br from-fuchsia-600 via-black to-emerald-500 bg-[length:400%_400%] animate-[gradient_15s_ease_infinite] overflow-hidden" />
@@ -304,8 +468,10 @@ export default function Home() {
           POW!
         </motion.div>
       </section>
+      </FallingWrapper>
 
       {/* Quote & Game Widget */}
+      <FallingWrapper index={2} isActive={boomStage !== 'idle'}>
       <motion.section 
         initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -315,8 +481,10 @@ export default function Home() {
       >
         <QuoteWidget />
       </motion.section>
+      </FallingWrapper>
 
       {/* Collage Section (Moved below Daily Inspiration) */}
+      <FallingWrapper index={3} isActive={boomStage !== 'idle'}>
       <motion.section 
         initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -398,8 +566,10 @@ export default function Home() {
 
         </div>
       </motion.section>
+      </FallingWrapper>
 
       {/* Bento Grid */}
+      <FallingWrapper index={4} isActive={boomStage !== 'idle'}>
       <motion.section 
         initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -570,8 +740,10 @@ export default function Home() {
           </div>
         </div>
       </motion.section>
+      </FallingWrapper>
 
       {/* Emergency Protocol Widget - Dedicated Section */}
+      <FallingWrapper index={5} isActive={boomStage !== 'idle'}>
       <motion.section 
         initial={{ opacity: 0, scale: 0.9 }}
         whileInView={{ opacity: 1, scale: 1 }}
@@ -621,8 +793,10 @@ export default function Home() {
           </div>
         </div>
       </motion.section>
+      </FallingWrapper>
 
       {/* Decorative Widgets Section */}
+      <FallingWrapper index={6} isActive={boomStage !== 'idle'}>
       <motion.section 
         initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -708,6 +882,7 @@ export default function Home() {
           <p className="text-center mt-6 font-bold uppercase text-xs opacity-40">Digital Artifacts Collection V1.0</p>
         </div>
       </motion.section>
+      </FallingWrapper>
       </div>
     </div>
   );

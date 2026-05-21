@@ -7,6 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Project, Profile, Skill } from '../types';
+import { safeSetItem, safeGetItem } from '../lib/cache';
 import { 
   LayoutDashboard, 
   Palette, 
@@ -37,8 +38,14 @@ type Tab = 'dashboard' | 'projects' | 'settings' | 'skills';
 
 export default function Admin() {
   const [activeTab, setActiveTab] = useState<Tab>('projects');
-  const [projects, setProjects] = useState<any[]>([]);
-  const [skills, setSkills] = useState<any[]>([]);
+  const [projects, setProjects] = useState<any[]>(() => {
+    const cached = safeGetItem('projects_cache');
+    return cached ? JSON.parse(cached) : [];
+  });
+  const [skills, setSkills] = useState<any[]>(() => {
+    const cached = safeGetItem('skills_cache');
+    return cached ? JSON.parse(cached) : [];
+  });
   const [profile, setProfile] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
@@ -121,9 +128,14 @@ export default function Admin() {
   const fetchProjects = async () => {
     try {
       const { data, error } = await supabase.from('projects').select('*').order('created_at', { ascending: false });
-      if (data) setProjects(data);
+      if (data) {
+        setProjects(data);
+        safeSetItem('projects_cache', JSON.stringify(data));
+      }
     } catch (err) {
       console.error('Failed to fetch projects', err);
+      const cached = safeGetItem('projects_cache');
+      if (cached) setProjects(JSON.parse(cached));
     }
   };
 
@@ -131,9 +143,14 @@ export default function Admin() {
     try {
       const { data, error } = await supabase.from('skills').select('*').order('order', { ascending: true });
       if (error) throw error;
-      if (data) setSkills(data);
+      if (data) {
+        setSkills(data);
+        safeSetItem('skills_cache', JSON.stringify(data));
+      }
     } catch (err) {
       console.error('Failed to fetch skills', err);
+      const cached = safeGetItem('skills_cache');
+      if (cached) setSkills(JSON.parse(cached));
     }
   };
 
@@ -159,14 +176,22 @@ export default function Admin() {
 
   const toggleSkill = async (id: string, currentStatus: boolean) => {
     // Optimistic update
-    setSkills(prev => prev.map(s => s.id === id ? { ...s, enabled: !currentStatus } : s));
+    setSkills(prev => {
+      const updated = prev.map(s => s.id === id ? { ...s, enabled: !currentStatus } : s);
+      safeSetItem('skills_cache', JSON.stringify(updated));
+      return updated;
+    });
     
     try {
       const { error } = await supabase.from('skills').update({ enabled: !currentStatus }).eq('id', id);
       if (error) throw error;
     } catch (err: any) {
       // Revert
-      setSkills(prev => prev.map(s => s.id === id ? { ...s, enabled: currentStatus } : s));
+      setSkills(prev => {
+        const reverted = prev.map(s => s.id === id ? { ...s, enabled: currentStatus } : s);
+        safeSetItem('skills_cache', JSON.stringify(reverted));
+        return reverted;
+      });
       alert('Update failed: ' + err.message);
     }
   };
@@ -209,13 +234,35 @@ export default function Admin() {
       };
 
       let error;
+      let returnedData;
       if (editingProject) {
-        ({ error } = await supabase.from('projects').update(projectData).eq('id', editingProject.id));
+        const { data, error: err } = await supabase.from('projects').update(projectData).eq('id', editingProject.id).select();
+        error = err;
+        returnedData = data;
       } else {
-        ({ error } = await supabase.from('projects').insert([projectData]));
+        const { data, error: err } = await supabase.from('projects').insert([projectData]).select();
+        error = err;
+        returnedData = data;
       }
       
       if (error) throw error;
+
+      // Sync and update local state and cache immediately
+      const cached = safeGetItem('projects_cache');
+      let currentCachedList = cached ? JSON.parse(cached) : [...projects];
+      
+      if (editingProject) {
+        currentCachedList = currentCachedList.map((p: any) => p.id === editingProject.id ? { ...p, ...projectData } : p);
+        setProjects(currentCachedList);
+      } else {
+        const newObj = (returnedData && returnedData[0]) ? returnedData[0] : {
+          id: Math.random().toString(36).substring(2, 9),
+          ...projectData
+        };
+        currentCachedList = [newObj, ...currentCachedList];
+        setProjects(currentCachedList);
+      }
+      safeSetItem('projects_cache', JSON.stringify(currentCachedList));
       
       setIsAdding(false);
       setEditingProject(null);
@@ -233,7 +280,11 @@ export default function Admin() {
     const newStatus = project.status === 'published' ? 'draft' : 'published';
     
     // Optimistic update
-    setProjects(prev => prev.map(p => p.id === project.id ? { ...p, status: newStatus } : p));
+    setProjects(prev => {
+      const updated = prev.map(p => p.id === project.id ? { ...p, status: newStatus } : p);
+      safeSetItem('projects_cache', JSON.stringify(updated));
+      return updated;
+    });
     
     try {
       const { error } = await supabase
@@ -244,7 +295,11 @@ export default function Admin() {
       if (error) throw error;
     } catch (err: any) {
       // Revert on error
-      setProjects(prev => prev.map(p => p.id === project.id ? { ...p, status: project.status } : p));
+      setProjects(prev => {
+        const reverted = prev.map(p => p.id === project.id ? { ...p, status: project.status } : p);
+        safeSetItem('projects_cache', JSON.stringify(reverted));
+        return reverted;
+      });
       alert('Toggle failed: ' + err.message);
     }
   };
@@ -253,15 +308,18 @@ export default function Admin() {
     if (!id) return;
     if (!confirm('Are you sure you want to delete this panel? This cannot be undone.')) return;
     
-    const projectToDelete = projects.find(p => p.id === id);
     setLoading(true);
+    
+    // Optimistic update
+    setProjects(prev => {
+      const updated = prev.filter(p => p.id !== id);
+      safeSetItem('projects_cache', JSON.stringify(updated));
+      return updated;
+    });
     
     try {
       const { error } = await supabase.from('projects').delete().eq('id', id);
       if (error) throw error;
-      
-      // Update local state immediately
-      setProjects(prev => prev.filter(p => p.id !== id));
       alert('Project deleted successfully!');
     } catch (err: any) {
       console.error('Delete error:', err);
@@ -277,11 +335,17 @@ export default function Admin() {
     if (!confirm('Permanently remove this skill?')) return;
     
     setLoading(true);
+    
+    // Optimistic update
+    setSkills(prev => {
+      const updated = prev.filter(s => s.id !== id);
+      safeSetItem('skills_cache', JSON.stringify(updated));
+      return updated;
+    });
+    
     try {
       const { error } = await supabase.from('skills').delete().eq('id', id);
       if (error) throw error;
-      
-      setSkills(prev => prev.filter(s => s.id !== id));
     } catch (err: any) {
       alert('Skill deletion failed: ' + err.message);
       fetchSkills();

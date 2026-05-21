@@ -14,6 +14,7 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isRegister, setIsRegister] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -33,13 +34,29 @@ export default function Login() {
     setError(null);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      if (isRegister) {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+        });
 
-      if (error) throw error;
-      navigate('/admin');
+        if (error) throw error;
+        
+        if (data?.session) {
+          navigate('/admin');
+        } else {
+          setError('Registration initialized! If verification is disabled, you can sign in directly now.');
+          setIsRegister(false);
+        }
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (error) throw error;
+        navigate('/admin');
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to sign in');
       console.error('Login error:', err);
@@ -61,8 +78,12 @@ export default function Login() {
           <div className="inline-block bg-primary p-3 comic-border -rotate-3 mb-4">
             <LogIn className="text-white w-8 h-8" />
           </div>
-          <h1 className="font-black text-4xl uppercase tracking-tighter text-on-background">Restricted</h1>
-          <p className="font-bold text-sm text-on-background/60 uppercase mt-2">Authorized Artists Only</p>
+          <h1 className="font-black text-4xl uppercase tracking-tighter text-on-background">
+            {isRegister ? 'Registration' : 'Restricted'}
+          </h1>
+          <p className="font-bold text-sm text-on-background/60 uppercase mt-2">
+            {isRegister ? 'Create Your Artist Profile' : 'Authorized Artists Only'}
+          </p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-6 relative z-10">
@@ -106,10 +127,23 @@ export default function Login() {
           <button
             disabled={loading}
             type="submit"
-            className="w-full bg-primary text-white font-black uppercase py-4 comic-border hover:bg-primary/90 active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+            className="w-full bg-primary text-white font-black uppercase py-4 comic-border hover:bg-primary/90 active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
           >
-            {loading ? 'Decrypting...' : 'Enter Studio'}
+            {loading ? 'Decrypting...' : isRegister ? 'Initiate Account' : 'Enter Studio'}
           </button>
+
+          <div className="text-center mt-4">
+            <button
+              type="button"
+              onClick={() => {
+                setIsRegister(!isRegister);
+                setError(null);
+              }}
+              className="text-xs font-black uppercase text-on-background/70 hover:text-primary transition-colors underline decoration-2 cursor-pointer"
+            >
+              {isRegister ? 'Already have an account? Sign In' : 'Need an account? Register Artist'}
+            </button>
+          </div>
         </form>
 
         <div className="mt-8 pt-8 border-t-4 border-halftone text-center">
