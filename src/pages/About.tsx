@@ -27,10 +27,10 @@ export default function About() {
   return (
     <div className="p-8 md:p-12 max-w-7xl mx-auto w-full flex flex-col gap-12">
       <Helmet>
-        <title>Origin Story | About Dipanjan Baidya</title>
-        <meta name="description" content="Learn about Dipanjan Baidya, a 19-year-old designer and developer specializing in branding, UI concepts, and custom web projects." />
-        <meta property="og:title" content="Origin Story | Dipanjan Baidya" />
-        <meta property="og:description" content="The story behind the brutalist sketchbook and the creative mind of Dipanjan Baidya." />
+        <title>Origin Story | About Dipanjan Baidya (Xom 699)</title>
+        <meta name="description" content="Learn about Dipanjan Baidya (Xom 699), a 19-year-old designer and developer specializing in branding, custom web projects, and brutalist digital sketchbook designs." />
+        <meta property="og:title" content="Origin Story | Dipanjan Baidya (Xom 699)" />
+        <meta property="og:description" content="Discover the creative journey, designs, and backstory of Dipanjan Baidya, also known as Xom 699." />
       </Helmet>
       {/* Header Panel */}
       <motion.header 

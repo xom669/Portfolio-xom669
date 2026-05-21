@@ -80,9 +80,9 @@ export default function WorkDetail() {
   return (
     <div className="min-h-screen bg-halftone p-8 md:p-12">
       <Helmet>
-        <title>{`${project.title} | Dipanjan Baidya Portfolio`}</title>
-        <meta name="description" content={project.description} />
-        <meta property="og:title" content={`${project.title} | Dipanjan Baidya`} />
+        <title>{`${project.title} | Dipanjan Baidya (Xom 699) Portfolio`}</title>
+        <meta name="description" content={`${project.title} - ${project.description}`} />
+        <meta property="og:title" content={`${project.title} | Dipanjan Baidya (Xom 699)`} />
         <meta property="og:description" content={project.description} />
         <meta property="og:image" content={project.image_url} />
       </Helmet>

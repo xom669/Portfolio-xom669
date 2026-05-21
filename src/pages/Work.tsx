@@ -67,10 +67,10 @@ export default function Work() {
   return (
     <div className="p-8 md:p-12 max-w-7xl mx-auto w-full flex flex-col gap-16 relative">
       <Helmet>
-        <title>Project Sketchbook | Selected Works by Dipanjan Baidya</title>
-        <meta name="description" content="A collection of recent visual explorations, digital art, and development projects by Dipanjan Baidya. Built with ink, caffeine, and brutalism." />
-        <meta property="og:title" content="Project Sketchbook | Dipanjan Baidya" />
-        <meta property="og:description" content="Explore selected digital works and creative experiments by Dipanjan Baidya." />
+        <title>Project Sketchbook | Selected Works by Dipanjan Baidya (Xom 699)</title>
+        <meta name="description" content="Official showcase of digital designs, art experiments, and custom applications built by Dipanjan Baidya (Xom 699) using modern web tools and brutalist designs." />
+        <meta property="og:title" content="Project Sketchbook | Dipanjan Baidya (Xom 699)" />
+        <meta property="og:description" content="Explore selected art works, custom widgets and creative projects by Dipanjan Baidya, also known as Xom 699." />
       </Helmet>
       <header className="relative text-center flex flex-col items-center justify-center py-12">
         <motion.div 

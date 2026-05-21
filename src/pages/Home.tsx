@@ -261,10 +261,10 @@ export default function Home() {
   return (
     <div className="p-8 md:p-12 max-w-7xl mx-auto w-full flex flex-col gap-12 relative min-h-screen overflow-x-hidden">
       <Helmet>
-        <title>Dipanjan Baidya | Portfolio & Creative Sketchbook</title>
-        <meta name="description" content="Explore the creative portfolio of Dipanjan Baidya. A brutalist comic-style sketchbook featuring panels, digital work, and a custom sketchbook CMS." />
-        <meta property="og:title" content="Dipanjan Baidya | Portfolio & Creative Sketchbook" />
-        <meta property="og:description" content="Explore the creative portfolio of Dipanjan Baidya. A brutalist comic-style sketchbook featuring digital work and creative panels." />
+        <title>Dipanjan Baidya (Xom 699) | Portfolio & Creative Sketchbook</title>
+        <meta name="description" content="Explore the creative portfolio of Dipanjan Baidya (Xom 699). A brutalist comic-style sketchbook featuring panels, digital work, custom interactive widgets, and standard web developer projects." />
+        <meta property="og:title" content="Dipanjan Baidya (Xom 699) | Portfolio & Creative Sketchbook" />
+        <meta property="og:description" content="Explore the official creative sketchbook of Dipanjan Baidya (Xom 699). High performance, custom interactive web development, digital arts, and widgets." />
       </Helmet>
       <AnimatePresence>
         {isExploding && (
