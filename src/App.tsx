@@ -1,33 +1,57 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
+import { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { PortfolioProvider, usePortfolio } from './context/PortfolioContext';
+import { BackgroundEffects } from './components/BackgroundEffects';
+import { Navbar } from './components/Navbar';
+import { Footer } from './components/Footer';
 
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { Layout } from './components/Layout';
+// Pages
 import Home from './pages/Home';
 import Work from './pages/Work';
+import Materials from './pages/Materials';
 import About from './pages/About';
+import Contact from './pages/Contact';
 import Admin from './pages/Admin';
-import Login from './pages/Login';
-import WorkDetail from './pages/WorkDetail';
+
+// Scroll to top automatically when route changes
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [pathname]);
+  return null;
+}
+
+function MainLayout() {
+  return (
+    <>
+      <ScrollToTop />
+      <BackgroundEffects />
+      <Navbar />
+
+      <main className="page-main-wrap min-h-[calc(100vh-220px)]">
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/work" element={<Work />} />
+          <Route path="/materials" element={<Materials />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/admin" element={<Admin />} />
+          <Route path="*" element={<Home />} />
+        </Routes>
+      </main>
+
+      <Footer />
+    </>
+  );
+}
 
 export default function App() {
   return (
-    <Router>
-      <Routes>
-        {/* Pages with navigation header/footer */}
-        <Route element={<Layout />}>
-          <Route path="/" element={<Home />} />
-          <Route path="/work" element={<Work />} />
-          <Route path="/work/:id" element={<WorkDetail />} />
-          <Route path="/about" element={<About />} />
-        </Route>
-
-        {/* Minimal/Standalone pages */}
-        <Route path="/admin" element={<Admin />} />
-        <Route path="/login" element={<Login />} />
-      </Routes>
-    </Router>
+    <PortfolioProvider>
+      <Router>
+        <MainLayout />
+      </Router>
+    </PortfolioProvider>
   );
 }

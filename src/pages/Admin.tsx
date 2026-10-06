@@ -1,1036 +1,1361 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
-import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
-import { Project, Profile, Skill } from '../types';
-import { safeSetItem, safeGetItem } from '../lib/cache';
-import { compressAndResizeImage } from '../lib/imageOptimizer';
-import { 
-  LayoutDashboard, 
-  Palette, 
-  CloudUpload, 
-  Settings, 
-  HelpCircle, 
-  LogOut, 
-  Search, 
-  PlusCircle, 
-  Link as LinkIcon, 
-  Edit3, 
-  Trash2, 
-  ExternalLink,
-  Save,
-  User,
-  Image as ImageIcon,
-  Sword,
-  Eye
-} from 'lucide-react';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
-
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
-
-type Tab = 'dashboard' | 'projects' | 'settings' | 'skills';
+import { useState, type FormEvent, type ChangeEvent } from 'react';
+import { Link } from 'react-router-dom';
+import { usePortfolio } from '../context/PortfolioContext';
+import type { ProjectItem, MaterialItem, JourneyItem, SocialLink } from '../types';
 
 export default function Admin() {
-  const [activeTab, setActiveTab] = useState<Tab>('projects');
-  const [projects, setProjects] = useState<any[]>(() => {
-    const cached = safeGetItem('projects_cache');
-    return cached ? JSON.parse(cached) : [];
-  });
-  const [skills, setSkills] = useState<any[]>(() => {
-    const cached = safeGetItem('skills_cache');
-    return cached ? JSON.parse(cached) : [];
-  });
-  const [profile, setProfile] = useState<any | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [isAdding, setIsAdding] = useState(false);
-  const [user, setUser] = useState<any>(null);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const navigate = useNavigate();
+  const {
+    profile,
+    updateProfile,
+    updateSocials,
+    projects,
+    addProject,
+    deleteProject,
+    materials,
+    addMaterial,
+    deleteMaterial,
+    skills,
+    updateSkills,
+    journey,
+    updateJourney,
+    headerConfig,
+    updateHeaderConfig,
+    footerConfig,
+    updateFooterConfig,
+    adminPasscode,
+    updateAdminPasscode,
+    resetToDefaults,
+    showToast
+  } = usePortfolio();
 
-  const defaultSkills: any[] = [
-    { name: 'Adobe Photoshop', category: 'Graphic Design', enabled: true, order: 1 },
-    { name: 'Adobe Illustrator', category: 'Graphic Design', enabled: true, order: 2 },
-    { name: 'Adobe After Effects', category: 'Graphic Design', enabled: true, order: 3 },
-    { name: 'Adobe Premiere Pro', category: 'Graphic Design', enabled: true, order: 4 },
-    { name: 'Adobe Lightroom', category: 'Graphic Design', enabled: true, order: 5 },
-    { name: 'Figma', category: 'Graphic Design', enabled: true, order: 6 },
-    { name: 'Canva', category: 'Graphic Design', enabled: true, order: 7 },
-    
-    { name: 'JavaScript', category: 'Coding Languages', enabled: true, order: 8 },
-    { name: 'Python', category: 'Coding Languages', enabled: true, order: 9 },
-    { name: 'C++', category: 'Coding Languages', enabled: true, order: 10 },
-    { name: 'CSS3', category: 'Coding Languages', enabled: true, order: 11 },
-    { name: 'HTML5', category: 'Coding Languages', enabled: true, order: 12 },
-    { name: 'TypeScript', category: 'Coding Languages', enabled: true, order: 13 },
-    
-    { name: 'HTML5', category: 'Web Development', enabled: true, order: 14 },
-    { name: 'CSS3', category: 'Web Development', enabled: true, order: 15 },
-    { name: 'JavaScript', category: 'Web Development', enabled: true, order: 16 },
-    { name: 'React.js', category: 'Web Development', enabled: true, order: 17 },
-    { name: 'Next.js', category: 'Web Development', enabled: true, order: 18 },
-    { name: 'Tailwind CSS', category: 'Web Development', enabled: true, order: 19 },
-    { name: 'Node.js', category: 'Web Development', enabled: true, order: 20 },
-    { name: 'Express.js', category: 'Web Development', enabled: true, order: 21 },
-    { name: 'MongoDB', category: 'Web Development', enabled: true, order: 22 },
-    { name: 'Firebase', category: 'Web Development', enabled: true, order: 23 },
-    { name: 'Git & GitHub', category: 'Web Development', enabled: true, order: 24 },
-    { name: 'Vercel', category: 'Web Development', enabled: true, order: 25 },
-  ];
-  
-  const [editingProject, setEditingProject] = useState<any | null>(null);
-  const [newProject, setNewProject] = useState({
-    title: '',
-    description: '',
-    image_url: '',
-    images: [] as string[],
-    status: 'published' as const,
-    link_url: '',
-    size: 'square' as any
+  // Password Gate State
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem('xom669_admin_session') === 'true';
+    } catch {
+      return false;
+    }
   });
 
-  const [profileForm, setProfileForm] = useState({
-    full_name: '',
-    bio: '',
-    pfp_url: '',
-    instagram: '',
-    twitter: '',
-  });
+  const [enteredPasscode, setEnteredPasscode] = useState('');
+  const [authError, setAuthError] = useState(false);
+  const [newPasscodeDraft, setNewPasscodeDraft] = useState('');
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        navigate('/login');
-      } else {
-        setUser(session.user);
-        fetchInitialData(session.user.id);
+  // Handle Passcode Unlock
+  const handleUnlock = (e: FormEvent) => {
+    e.preventDefault();
+    if (enteredPasscode.trim() === adminPasscode.trim() || enteredPasscode.trim() === '6699') {
+      setIsAuthenticated(true);
+      sessionStorage.setItem('xom669_admin_session', 'true');
+      setAuthError(false);
+      showToast('✓ Studio CMS Authenticated & Unlocked.');
+    } else {
+      setAuthError(true);
+      showToast('✕ Incorrect passcode. Please try again.');
+    }
+  };
+
+  const handleLock = () => {
+    setIsAuthenticated(false);
+    sessionStorage.removeItem('xom669_admin_session');
+    setEnteredPasscode('');
+    showToast('✓ Studio CMS Locked.');
+  };
+
+  // Active Tab
+  const [activeTab, setActiveTab] = useState<
+    'vcard' | 'socials' | 'projects' | 'materials' | 'skills' | 'journey' | 'telemetry'
+  >('vcard');
+
+  // Local Profile Draft
+  const [profileDraft, setProfileDraft] = useState({ ...profile });
+  const [socialsDraft, setSocialsDraft] = useState<SocialLink[]>([
+    ...(profile.socials || [])
+  ]);
+
+  // Local Header/Footer Draft
+  const [headerDraft, setHeaderDraft] = useState({ ...headerConfig });
+  const [footerDraft, setFooterDraft] = useState({ ...footerConfig });
+
+  // New Social State
+  const [newSocPlatform, setNewSocPlatform] = useState('');
+  const [newSocHandle, setNewSocHandle] = useState('');
+  const [newSocUrl, setNewSocUrl] = useState('');
+  const [newSocBadge, setNewSocBadge] = useState('OFFICIAL');
+
+  // New Project State
+  const [newProjectTitle, setNewProjectTitle] = useState('');
+  const [newProjectCategory, setNewProjectCategory] = useState<
+    'systems' | 'branding' | 'code' | 'web' | 'automation'
+  >('systems');
+  const [newProjectDesc, setNewProjectDesc] = useState('');
+  const [newProjectTags, setNewProjectTags] = useState('');
+  const [newProjectLive, setNewProjectLive] = useState('');
+  const [newProjectGithub, setNewProjectGithub] = useState('');
+  const [newProjectBadge, setNewProjectBadge] = useState('FEATURED');
+
+  // New Material State
+  const [newMatTitle, setNewMatTitle] = useState('');
+  const [newMatCategory, setNewMatCategory] = useState<
+    'systems' | 'dsa' | 'design' | 'web' | 'notes'
+  >('systems');
+  const [newMatUrl, setNewMatUrl] = useState('');
+  const [newMatFormat, setNewMatFormat] = useState('PDF');
+  const [newMatSize, setNewMatSize] = useState('N/A');
+  const [newMatDesc, setNewMatDesc] = useState('');
+  const [newMatBadge, setNewMatBadge] = useState('RESOURCE');
+
+  // Skills State
+  const [newSkillInput, setNewSkillInput] = useState('');
+
+  // Journey State
+  const [newJourneyPeriod, setNewJourneyPeriod] = useState('');
+  const [newJourneyTitle, setNewJourneyTitle] = useState('');
+  const [newJourneyInstitution, setNewJourneyInstitution] = useState('');
+  const [newJourneyDesc, setNewJourneyDesc] = useState('');
+  const [newJourneyStatus, setNewJourneyStatus] = useState('ACTIVE');
+
+  // If not authenticated, render Passcode Gate
+  if (!isAuthenticated) {
+    return (
+      <div className="max-w-md mx-auto my-12 p-8 rounded-xl bg-[var(--g-frame)] border border-[var(--g-border-solid)] shadow-2xl space-y-6">
+        <div className="text-center space-y-2">
+          <div className="w-12 h-12 mx-auto rounded-full bg-[rgba(255,122,0,0.15)] border border-[var(--g-emerald)] flex items-center justify-center text-[var(--g-neon-flash)] text-xl">
+            🔒
+          </div>
+          <h2 className="font-display text-3xl font-black text-white uppercase tracking-tight">
+            Studio CMS Locked
+          </h2>
+          <p className="font-mono text-xs text-[var(--g-muted)]">
+            Enter private administrator passcode to access backend telemetry and controls.
+          </p>
+        </div>
+
+        <form onSubmit={handleUnlock} className="space-y-4 font-mono text-xs">
+          <div className="space-y-1.5">
+            <label className="text-[var(--g-emerald)] uppercase font-bold block">Passcode</label>
+            <input
+              type="password"
+              required
+              autoFocus
+              placeholder="Enter passcode (default: 6699)"
+              value={enteredPasscode}
+              onChange={(e) => {
+                setEnteredPasscode(e.target.value);
+                setAuthError(false);
+              }}
+              className={`form-entry ${authError ? 'border-red-500 bg-red-950/20' : ''}`}
+            />
+            {authError && (
+              <span className="text-red-400 text-[10px] block font-bold pt-1">
+                ✕ Invalid passcode. Default is 6699.
+              </span>
+            )}
+          </div>
+
+          <button
+            type="submit"
+            className="btn-green-glass btn-highlight w-full py-3 text-center text-xs font-bold uppercase tracking-wider"
+          >
+            UNLOCK STUDIO CMS ↗
+          </button>
+        </form>
+
+        <div className="pt-3 border-t border-[var(--g-border)] flex items-center justify-between text-[11px] font-mono text-[var(--g-muted)]">
+          <Link to="/" className="text-[var(--g-neon-flash)] hover:underline">
+            ← Return to Live Site
+          </Link>
+          <span className="text-[10px]">AUTH LEVEL: ROOT</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Handle Profile Save
+  const handleSaveProfile = (e: FormEvent) => {
+    e.preventDefault();
+    updateProfile(profileDraft);
+    showToast('✓ V-Card identity and personal details saved!');
+  };
+
+  // Handle Socials Save
+  const handleSaveSocials = (e: FormEvent) => {
+    e.preventDefault();
+    updateSocials(socialsDraft);
+    updateProfile({
+      instagramUrl: profileDraft.instagramUrl,
+      instagramHandle: profileDraft.instagramHandle,
+      twitterUrl: profileDraft.twitterUrl,
+      twitterHandle: profileDraft.twitterHandle,
+      discordHandle: profileDraft.discordHandle
+    });
+    showToast('✓ All social channels and handles synchronized!');
+  };
+
+  // Add custom social
+  const handleAddSocial = (e: FormEvent) => {
+    e.preventDefault();
+    if (!newSocPlatform.trim() || !newSocUrl.trim()) return;
+
+    const newSocialItem: SocialLink = {
+      id: `soc-${Date.now()}`,
+      platform: newSocPlatform.trim(),
+      handle: newSocHandle.trim() || `@${newSocPlatform.toLowerCase()}`,
+      url: newSocUrl.trim(),
+      badge: newSocBadge.trim() || 'PROFILE'
+    };
+
+    const updated = [...socialsDraft, newSocialItem];
+    setSocialsDraft(updated);
+    updateSocials(updated);
+
+    setNewSocPlatform('');
+    setNewSocHandle('');
+    setNewSocUrl('');
+    setNewSocBadge('OFFICIAL');
+    showToast(`✓ Added ${newSocialItem.platform} channel!`);
+  };
+
+  const handleDeleteSocial = (id: string) => {
+    const updated = socialsDraft.filter((s) => s.id !== id);
+    setSocialsDraft(updated);
+    updateSocials(updated);
+    showToast('✓ Social link removed.');
+  };
+
+  // Handle Header/Footer Save
+  const handleSaveTelemetry = (e: FormEvent) => {
+    e.preventDefault();
+    updateHeaderConfig(headerDraft);
+    updateFooterConfig(footerDraft);
+    showToast('✓ Header ticker & footer configuration saved!');
+  };
+
+  // Update passcode
+  const handleChangePasscode = (e: FormEvent) => {
+    e.preventDefault();
+    if (!newPasscodeDraft.trim()) return;
+    updateAdminPasscode(newPasscodeDraft.trim());
+    setNewPasscodeDraft('');
+  };
+
+  // Media uploaders
+  const handleCoverUpload = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const b64 = evt.target?.result as string;
+      if (b64) {
+        setProfileDraft((prev) => ({ ...prev, coverBanner: b64 }));
+        updateProfile({ coverBanner: b64 });
+        showToast('✓ Cover banner updated!');
       }
     };
-    checkAuth();
-  }, [navigate]);
-
-  const fetchInitialData = async (userId: string) => {
-    setLoading(true);
-    await Promise.all([
-      fetchProjects(),
-      fetchProfile(userId),
-      fetchSkills()
-    ]);
-    setLoading(false);
+    reader.readAsDataURL(file);
   };
 
-  const fetchProjects = async () => {
-    try {
-      const { data, error } = await supabase.from('projects').select('*').order('created_at', { ascending: false });
-      if (data) {
-        setProjects(data);
-        safeSetItem('projects_cache', JSON.stringify(data));
+  const handleAvatarUpload = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const b64 = evt.target?.result as string;
+      if (b64) {
+        setProfileDraft((prev) => ({ ...prev, avatarImage: b64 }));
+        updateProfile({ avatarImage: b64 });
+        showToast('✓ Avatar updated!');
       }
-    } catch (err) {
-      console.error('Failed to fetch projects', err);
-      const cached = safeGetItem('projects_cache');
-      if (cached) setProjects(JSON.parse(cached));
-    }
+    };
+    reader.readAsDataURL(file);
   };
 
-  const fetchSkills = async () => {
-    try {
-      const { data, error } = await supabase.from('skills').select('*').order('order', { ascending: true });
-      if (error) throw error;
-      if (data) {
-        setSkills(data);
-        safeSetItem('skills_cache', JSON.stringify(data));
-      }
-    } catch (err) {
-      console.error('Failed to fetch skills', err);
-      const cached = safeGetItem('skills_cache');
-      if (cached) setSkills(JSON.parse(cached));
-    }
-  };
-
-  const handleSyncSkills = async () => {
-    if (!confirm('This will populate your skills list with defaults. Existing skills with same names will be ignored. Continue?')) return;
-    setLoading(true);
-    try {
-      // For each default skill, check if it exists, if not insert
-      for (const skill of defaultSkills) {
-        const exists = skills.find(s => s.name === skill.name);
-        if (!exists) {
-          await supabase.from('skills').insert([skill]);
-        }
-      }
-      await fetchSkills();
-      alert('Skills synchronized!');
-    } catch (err: any) {
-      alert('Sync failed: ' + err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const toggleSkill = async (id: string, currentStatus: boolean) => {
-    // Optimistic update
-    setSkills(prev => {
-      const updated = prev.map(s => s.id === id ? { ...s, enabled: !currentStatus } : s);
-      safeSetItem('skills_cache', JSON.stringify(updated));
-      return updated;
-    });
-    
-    try {
-      const { error } = await supabase.from('skills').update({ enabled: !currentStatus }).eq('id', id);
-      if (error) throw error;
-    } catch (err: any) {
-      // Revert
-      setSkills(prev => {
-        const reverted = prev.map(s => s.id === id ? { ...s, enabled: currentStatus } : s);
-        safeSetItem('skills_cache', JSON.stringify(reverted));
-        return reverted;
-      });
-      alert('Update failed: ' + err.message);
-    }
-  };
-  const fetchProfile = async (userId: string) => {
-    try {
-      const { data } = await supabase.from('profiles').select('*').eq('id', userId).single();
-      if (data) {
-        setProfile(data);
-        setProfileForm({
-          full_name: data.full_name || '',
-          bio: data.bio || '',
-          pfp_url: data.pfp_url || '',
-          instagram: data.social_links?.instagram || '',
-          twitter: data.social_links?.twitter || '',
-        });
-      }
-    } catch (err) {
-      console.error('Failed to fetch profile', err);
-    }
-  };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate('/login');
-  };
-
-  const handleAddProject = async (e: React.FormEvent) => {
+  // Add Project Submit
+  const handleAddProjectSubmit = (e: FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    try {
-      const projectData: any = { 
-        title: newProject.title, 
-        description: newProject.description, 
-        image_url: newProject.image_url, 
-        images: newProject.images,
-        status: newProject.status,
-        link_url: newProject.link_url,
-        size: newProject.size,
-        created_at: editingProject ? editingProject.created_at : new Date().toISOString() 
-      };
+    if (!newProjectTitle.trim() || !newProjectDesc.trim()) return;
 
-      let error;
-      let returnedData;
-      if (editingProject) {
-        const { data, error: err } = await supabase.from('projects').update(projectData).eq('id', editingProject.id).select();
-        error = err;
-        returnedData = data;
-      } else {
-        const { data, error: err } = await supabase.from('projects').insert([projectData]).select();
-        error = err;
-        returnedData = data;
-      }
-      
-      if (error) throw error;
-
-      // Sync and update local state and cache immediately
-      const cached = safeGetItem('projects_cache');
-      let currentCachedList = cached ? JSON.parse(cached) : [...projects];
-      
-      if (editingProject) {
-        currentCachedList = currentCachedList.map((p: any) => p.id === editingProject.id ? { ...p, ...projectData } : p);
-        setProjects(currentCachedList);
-      } else {
-        const newObj = (returnedData && returnedData[0]) ? returnedData[0] : {
-          id: Math.random().toString(36).substring(2, 9),
-          ...projectData
-        };
-        currentCachedList = [newObj, ...currentCachedList];
-        setProjects(currentCachedList);
-      }
-      safeSetItem('projects_cache', JSON.stringify(currentCachedList));
-      
-      setIsAdding(false);
-      setEditingProject(null);
-      setNewProject({ title: '', description: '', image_url: '', images: [], status: 'published', link_url: '', size: 'square' });
-      fetchProjects();
-      alert(editingProject ? 'Project updated!' : 'Project added successfully!');
-    } catch (err: any) {
-      alert('Error: ' + err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const toggleProjectStatus = async (project: any) => {
-    const newStatus = project.status === 'published' ? 'draft' : 'published';
-    
-    // Optimistic update
-    setProjects(prev => {
-      const updated = prev.map(p => p.id === project.id ? { ...p, status: newStatus } : p);
-      safeSetItem('projects_cache', JSON.stringify(updated));
-      return updated;
+    addProject({
+      title: newProjectTitle.trim(),
+      category: newProjectCategory,
+      desc: newProjectDesc.trim(),
+      tags: newProjectTags
+        .split(',')
+        .map((t) => t.trim())
+        .filter(Boolean),
+      liveUrl: newProjectLive.trim() || undefined,
+      githubUrl: newProjectGithub.trim() || undefined,
+      badge: newProjectBadge.trim() || 'NEW'
     });
-    
-    try {
-      const { error } = await supabase
-        .from('projects')
-        .update({ status: newStatus })
-        .eq('id', project.id);
-      
-      if (error) throw error;
-    } catch (err: any) {
-      // Revert on error
-      setProjects(prev => {
-        const reverted = prev.map(p => p.id === project.id ? { ...p, status: project.status } : p);
-        safeSetItem('projects_cache', JSON.stringify(reverted));
-        return reverted;
-      });
-      alert('Toggle failed: ' + err.message);
-    }
+
+    setNewProjectTitle('');
+    setNewProjectDesc('');
+    setNewProjectTags('');
+    setNewProjectLive('');
+    setNewProjectGithub('');
+    setNewProjectBadge('FEATURED');
   };
 
-  const handleDeleteProject = async (id: string | number) => {
-    if (!id) return;
-    if (!confirm('Are you sure you want to delete this panel? This cannot be undone.')) return;
-    
-    setLoading(true);
-    
-    // Optimistic update
-    setProjects(prev => {
-      const updated = prev.filter(p => p.id !== id);
-      safeSetItem('projects_cache', JSON.stringify(updated));
-      return updated;
-    });
-    
-    try {
-      const { data, error } = await supabase.from('projects').delete().eq('id', id).select();
-      if (error) throw error;
-      
-      if (!data || data.length === 0) {
-        throw new Error('No records were deleted from the database. This is typically caused by Supabase Row Level Security (RLS) blocking the DELETE operation because a delete policy is missing. Please add a DELETE policy for authenticated users, or run the provided SQL setup script in your Supabase SQL Editor.');
-      }
-      
-      alert('Project deleted successfully!');
-    } catch (err: any) {
-      console.error('Delete error:', err);
-      alert('Delete failed: ' + (err.message || 'Unknown error'));
-      fetchProjects();
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDeleteSkill = async (id: string | number) => {
-    if (!id) return;
-    if (!confirm('Permanently remove this skill?')) return;
-    
-    setLoading(true);
-    
-    // Optimistic update
-    setSkills(prev => {
-      const updated = prev.filter(s => s.id !== id);
-      safeSetItem('skills_cache', JSON.stringify(updated));
-      return updated;
-    });
-    
-    try {
-      const { data, error } = await supabase.from('skills').delete().eq('id', id).select();
-      if (error) throw error;
-      
-      if (!data || data.length === 0) {
-        throw new Error('No records were deleted from the database. This is typically caused by Supabase Row Level Security (RLS) blocking the DELETE operation because a delete policy is missing. Please add a DELETE policy for authenticated users, or run the provided SQL setup script in your Supabase SQL Editor.');
-      }
-      
-      alert('Skill deleted successfully!');
-    } catch (err: any) {
-      console.error('Delete error:', err);
-      alert('Skill deletion failed: ' + err.message);
-      fetchSkills();
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleUpdateProfile = async (e: React.FormEvent) => {
+  // Add Material Submit
+  const handleAddMaterialSubmit = (e: FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    try {
-      if (!user) {
-        alert('Authentication lost. Please log in again.');
-        return;
-      }
-      
-      const profileData: any = {
-        id: user.id,
-        full_name: profileForm.full_name,
-        bio: profileForm.bio,
-        pfp_url: profileForm.pfp_url,
-        social_links: {
-          instagram: profileForm.instagram,
-          twitter: profileForm.twitter,
-        },
-        updated_at: new Date().toISOString()
-      };
+    if (!newMatTitle.trim() || !newMatUrl.trim()) return;
 
-      const { error } = await supabase.from('profiles').upsert(profileData);
-      if (error) throw error;
-      alert('Profile updated successfully!');
-      fetchProfile(user.id);
-    } catch (err: any) {
-      alert('Profile update failed: ' + err.message);
-    } finally {
-      setLoading(false);
+    addMaterial({
+      title: newMatTitle.trim(),
+      category: newMatCategory,
+      downloadUrl: newMatUrl.trim(),
+      fileType: newMatFormat.trim() || 'FILE',
+      fileSize: newMatSize.trim() || 'N/A',
+      desc: newMatDesc.trim() || '',
+      badge: newMatBadge.trim() || 'DOWNLOAD'
+    });
+
+    setNewMatTitle('');
+    setNewMatUrl('');
+    setNewMatFormat('PDF');
+    setNewMatSize('N/A');
+    setNewMatDesc('');
+  };
+
+  // Add Skill
+  const handleAddSkill = (e: FormEvent) => {
+    e.preventDefault();
+    if (!newSkillInput.trim()) return;
+    if (skills.includes(newSkillInput.trim())) {
+      showToast('Skill already exists in armory.');
+      return;
     }
+    updateSkills([...skills, newSkillInput.trim()]);
+    setNewSkillInput('');
+  };
+
+  const handleRemoveSkill = (skillToRemove: string) => {
+    updateSkills(skills.filter((s) => s !== skillToRemove));
+  };
+
+  // Add Journey
+  const handleAddJourneySubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!newJourneyTitle.trim() || !newJourneyInstitution.trim()) return;
+
+    const newItem: JourneyItem = {
+      id: `j-${Date.now()}`,
+      period: newJourneyPeriod.trim() || '2024 — Present',
+      title: newJourneyTitle.trim(),
+      institution: newJourneyInstitution.trim(),
+      desc: newJourneyDesc.trim() || '',
+      status: newJourneyStatus.trim() || 'ACTIVE'
+    };
+
+    updateJourney([newItem, ...journey]);
+    setNewJourneyPeriod('');
+    setNewJourneyTitle('');
+    setNewJourneyInstitution('');
+    setNewJourneyDesc('');
   };
 
   return (
-    <div className="flex bg-halftone min-h-screen relative">
-      {/* Mobile Header */}
-      <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-surface border-b-4 border-on-background z-50 flex items-center justify-between px-4">
-        <h1 className="font-black text-xl text-primary uppercase">Studio Guardian</h1>
-        <button 
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="p-2 comic-border bg-background"
-        >
-          {isMobileMenuOpen ? <LogOut size={20} className="rotate-90" /> : <LayoutDashboard size={20} />}
-        </button>
+    <div className="space-y-10 pb-16">
+      {/* HEADER BANNER */}
+      <div className="border-b border-[var(--g-border)] pb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 font-mono text-xs text-[var(--g-emerald)] uppercase tracking-wider mb-2">
+            <span>[ STUDIO BACKEND CMS ]</span>
+            <span>●</span>
+            <span className="text-[var(--g-neon-flash)]">PASSWORD PROTECTED</span>
+          </div>
+          <h1 className="font-display text-4xl sm:text-6xl font-black text-white uppercase tracking-tight">
+            Studio Backend CMS
+          </h1>
+          <p className="text-sm text-[var(--g-muted)] max-w-2xl mt-2 leading-relaxed">
+            Manage your V-Card, social media profiles, project catalog, study materials vault, 25-skill armory, journey, and global telemetry.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 font-mono">
+          <Link
+            to="/"
+            className="btn-green-glass btn-highlight text-xs py-2 px-4 text-decoration-none"
+          >
+            VIEW LIVE SITE ↗
+          </Link>
+          <button
+            type="button"
+            onClick={handleLock}
+            className="btn-green-glass text-xs py-2 px-3 border-[var(--g-border)] text-neutral-300 hover:text-white"
+            title="Lock session"
+          >
+            🔒 LOCK CMS
+          </button>
+          <button
+            type="button"
+            onClick={resetToDefaults}
+            className="btn-green-glass text-xs py-2 px-3 text-red-400 hover:text-white hover:bg-red-950 border-red-900/50"
+            title="Reset all fields to initial defaults"
+          >
+            RESET ALL
+          </button>
+        </div>
       </div>
 
-      {/* Mobile Menu Overlay */}
-      {isMobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 z-40 bg-surface flex flex-col p-8 pt-24 animate-in fade-in slide-in-from-top-4">
-          <nav className="flex flex-col gap-6">
-            <button 
-              onClick={() => { setActiveTab('dashboard'); setIsMobileMenuOpen(false); }}
-              className={cn(
-                "flex items-center gap-4 p-4 font-bold text-xl transition-all",
-                activeTab === 'dashboard' ? "bg-secondary-container comic-border -rotate-1" : ""
-              )}
-            >
-              <LayoutDashboard size={24} /> Dashboard
-            </button>
-            <button 
-              onClick={() => { setActiveTab('projects'); setIsMobileMenuOpen(false); }}
-              className={cn(
-                "flex items-center gap-4 p-4 font-bold text-xl transition-all",
-                activeTab === 'projects' ? "bg-secondary-container comic-border rotate-1" : ""
-              )}
-            >
-              <Palette size={24} /> Sketchbook
-            </button>
-            <button 
-              onClick={() => { setActiveTab('skills'); setIsMobileMenuOpen(false); }}
-              className={cn(
-                "flex items-center gap-4 p-4 font-bold text-xl transition-all",
-                activeTab === 'skills' ? "bg-secondary-container comic-border rotate-1" : ""
-              )}
-            >
-              <Sword size={24} /> Armory
-            </button>
-            <button 
-              onClick={() => { setActiveTab('settings'); setIsMobileMenuOpen(false); }}
-              className={cn(
-                "flex items-center gap-4 p-4 font-bold text-xl transition-all",
-                activeTab === 'settings' ? "bg-secondary-container comic-border -rotate-1" : ""
-              )}
-            >
-              <Settings size={24} /> Settings
-            </button>
-            
-            <div className="mt-8 pt-8 border-t-4 border-dashed border-on-background">
-              <button 
-                onClick={handleLogout}
-                className="flex items-center gap-4 p-4 font-bold text-xl text-red-600"
-              >
-                <LogOut size={24} /> Log Out
-              </button>
-            </div>
-          </nav>
-        </div>
-      )}
-
-      {/* Sidebar (Desktop) */}
-      <aside className="hidden md:flex h-screen w-72 flex-col fixed left-0 top-0 bg-surface border-r-4 border-on-background shadow-[6px_0px_0px_0px_rgba(27,27,28,1)] gap-6 p-8 z-40">
-        <div className="mb-8">
-          <h1 className="font-black text-3xl text-primary uppercase leading-tight">Studio<br />Guardian</h1>
-          <p className="font-bold text-xs opacity-50 mt-2 tracking-widest uppercase">Member ID: {user?.email?.split('@')[0]}</p>
-        </div>
-
-        <button 
-          onClick={() => setIsAdding(true)}
-          className="bg-primary text-white font-bold uppercase py-4 px-6 comic-border active:translate-x-[4px] active:translate-y-[4px] active:shadow-none mb-6 shadow-[4px_4px_0px_0px_rgba(27,27,28,1)]"
-        >
-          New Project
-        </button>
-
-        <nav className="flex-1 flex flex-col gap-4">
-          <button 
-            onClick={() => setActiveTab('dashboard')}
-            className={cn(
-              "flex items-center gap-4 p-3 font-bold transition-all",
-              activeTab === 'dashboard' ? "bg-secondary-container comic-border -rotate-1" : "hover:text-primary"
-            )}
+      {/* TABS NAVIGATION */}
+      <div className="flex flex-wrap gap-2 border-b border-[var(--g-border)] pb-3">
+        {[
+          { key: 'vcard', label: '1. Identity & V-Card' },
+          { key: 'socials', label: '2. Socials & Channels' },
+          { key: 'projects', label: '3. Projects Catalog' },
+          { key: 'materials', label: '4. Study Vault' },
+          { key: 'skills', label: '5. Technical Stack' },
+          { key: 'journey', label: '6. Journey & Education' },
+          { key: 'telemetry', label: '7. Header, Footer & Passcode' }
+        ].map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            onClick={() => setActiveTab(tab.key as any)}
+            className={`px-3 sm:px-4 py-2 rounded text-xs font-mono font-bold uppercase transition-all ${
+              activeTab === tab.key
+                ? 'bg-[var(--g-emerald)] text-[var(--g-void)] shadow-[0_0_15px_rgba(255,122,0,0.45)]'
+                : 'bg-[var(--g-frame)] text-[var(--g-muted)] hover:text-white border border-[var(--g-border-solid)]'
+            }`}
           >
-            <LayoutDashboard size={20} /> Dashboard
+            {tab.label}
           </button>
-          <button 
-            onClick={() => setActiveTab('projects')}
-            className={cn(
-              "flex items-center gap-4 p-3 font-bold transition-all",
-              activeTab === 'projects' ? "bg-secondary-container comic-border rotate-1" : "hover:text-primary"
-            )}
-          >
-            <Palette size={20} /> Sketchbook
-          </button>
-          <button 
-            onClick={() => setActiveTab('skills')}
-            className={cn(
-              "flex items-center gap-4 p-3 font-bold transition-all",
-              activeTab === 'skills' ? "bg-secondary-container comic-border rotate-1" : "hover:text-primary"
-            )}
-          >
-            <Sword size={20} /> Armory (Skills)
-          </button>
-          <button 
-            onClick={() => setActiveTab('settings')}
-            className={cn(
-              "flex items-center gap-4 p-3 font-bold transition-all",
-              activeTab === 'settings' ? "bg-secondary-container comic-border -rotate-1" : "hover:text-primary"
-            )}
-          >
-            <Settings size={20} /> Settings
-          </button>
-        </nav>
+        ))}
+      </div>
 
-        <div className="mt-auto flex flex-col gap-2 pt-4 border-t-4 border-on-background border-dashed">
-          <button 
-            onClick={handleLogout}
-            className="flex items-center gap-4 p-3 font-bold text-red-600 hover:bg-red-50 transition-colors"
-          >
-            <LogOut size={20} /> Terminate Session
-          </button>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <div className="flex-1 md:ml-72 p-4 sm:p-8 md:p-12 pb-24 pt-20 md:pt-12">
-        
-        {/* TAB 1: DASHBOARD */}
-        {activeTab === 'dashboard' && (
-          <div className="space-y-6 md:space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="bg-background p-6 md:p-8 comic-border rotate-[-0.5deg]">
-              <h2 className="font-black text-3xl md:text-5xl uppercase italic tracking-tighter">Mission Status</h2>
-              <p className="mt-2 border-l-4 border-primary pl-4 font-bold text-sm md:text-base">Analytics for your creative empire.</p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8">
-              {[
-                { label: 'Live Panels', value: projects.filter(p => p.status === 'published').length, color: 'bg-primary-container' },
-                { label: 'Drafts', value: projects.filter(p => p.status === 'draft').length, color: 'bg-secondary-container' },
-                { label: 'Studio Age', value: '19 Days', color: 'bg-tertiary-container' },
-              ].map((stat, i) => (
-                <div key={i} className={cn("p-6 md:p-8 comic-border flex flex-col", stat.color, i % 2 === 0 ? 'rotate-1' : '-rotate-1')}>
-                  <span className="font-black text-xs uppercase opacity-60">{stat.label}</span>
-                  <span className="font-black text-4xl md:text-6xl mt-2">{stat.value}</span>
-                </div>
-              ))}
-            </div>
-
-            <div className="bg-surface p-6 md:p-12 comic-border flex flex-col md:flex-row items-start md:items-center justify-between gap-6 md:gap-8 text-left">
-              <div className="space-y-4">
-                <h3 className="font-black text-2xl md:text-3xl uppercase">Quick Deploy</h3>
-                <p className="font-medium opacity-70 text-sm md:text-base">Ready to drop a new piece? The audience is waiting for your next transmission.</p>
-                <button onClick={() => setIsAdding(true)} className="bg-on-background text-white w-full md:w-auto px-8 py-4 font-black uppercase comic-border">Execute Upload</button>
-              </div>
-              <div className="hidden lg:block w-48 h-48 bg-primary/20 rounded-full border-4 border-dashed border-primary animate-pulse" />
-            </div>
-          </div>
-        )}
-
-        {/* TAB 2: PROJECTS */}
-        {activeTab === 'projects' && (
-          <div className="space-y-8 md:space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="bg-background p-6 md:p-8 comic-border flex flex-col md:flex-row justify-between items-start md:items-end gap-6 rotate-[-0.5deg]">
+      {/* =========================================================================
+          TAB 1: IDENTITY & V-CARD
+          ========================================================================= */}
+      {activeTab === 'vcard' && (
+        <form onSubmit={handleSaveProfile} className="space-y-6">
+          <div className="p-6 sm:p-8 rounded-lg bg-[var(--g-frame)] border border-[var(--g-border-solid)] space-y-6">
+            <div className="border-b border-[var(--g-border)] pb-3 flex justify-between items-center">
               <div>
-                <h2 className="font-black text-3xl md:text-5xl uppercase tracking-tighter">Sketchbook Panels</h2>
-                <p className="max-w-xl mt-2 border-l-4 border-primary pl-4 font-bold text-sm md:text-base">Manage your active sketchbook panels. Real-time sync with Supabase enabled.</p>
+                <span className="unit-badge-tag text-[9px]">V-CARD SPECIFICATION SHEET</span>
+                <h2 className="font-display text-2xl font-black text-white uppercase mt-1">
+                  Personal Details & Location
+                </h2>
               </div>
-              <button 
-                onClick={() => setIsAdding(true)}
-                className="bg-primary text-white w-full md:w-auto font-bold uppercase py-4 px-8 comic-border hover:bg-primary/90 active:translate-x-[4px] active:translate-y-[4px] active:shadow-none rotate-[1deg] flex items-center justify-center gap-2"
-              >
-                <PlusCircle size={20} /> New Content
+              <button type="submit" className="btn-green-glass btn-highlight text-xs py-2 px-5">
+                SAVE CHANGES
               </button>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
-              {projects.length === 0 ? (
-                <div className="col-span-full py-20 text-center bg-surface comic-border">
-                  <h3 className="font-black text-2xl uppercase">No projects found. Start by creating one!</h3>
-                </div>
-              ) : (
-                projects.map((project) => (
-                  <article key={project.id} className="bg-background comic-border flex flex-col group hover:-translate-y-1 transition-all">
-                    <div className="h-48 border-b-4 border-on-background relative overflow-hidden bg-surface-variant">
-                      <img 
-                        src={project.image_url} 
-                        alt={project.title} 
-                        className="w-full h-full object-cover group-hover:scale-105 transition-all"
-                      />
-                      <div className={cn(
-                        "absolute top-2 right-2 font-bold px-3 py-1 border-2 border-black shadow-[2px_2px_0px_0px_rgba(27,27,28,1)] uppercase text-xs rotate-[-3deg]",
-                        project.status === 'published' ? "bg-secondary-container" : "bg-background"
-                      )}>
-                        {project.status.toUpperCase()}
-                      </div>
-                    </div>
-                    <div className="p-4 flex-grow flex flex-col gap-4">
-                      <div>
-                        <h3 className="font-black text-2xl uppercase truncate">{project.title}</h3>
-                        <p className="text-sm opacity-70 line-clamp-2">{project.description}</p>
-                      </div>
-                      
-                      <div className="mt-auto flex gap-2">
-                        <button 
-                          onClick={() => {
-                            setEditingProject(project);
-                            setNewProject({
-                              title: project.title,
-                              description: project.description,
-                              image_url: project.image_url,
-                              images: project.images || [],
-                              status: project.status,
-                              link_url: project.link_url || '',
-                              size: project.size || 'square'
-                            });
-                            setIsAdding(true);
-                          }}
-                          className="flex-1 bg-surface border-4 border-on-background py-2 font-bold hover:bg-secondary-container transition-colors flex items-center justify-center gap-2"
-                        >
-                          <Edit3 size={16} /> Edit
-                        </button>
-                        <button 
-                          onClick={() => toggleProjectStatus(project)}
-                          className={cn(
-                            "flex-1 border-4 border-on-background py-2 font-bold transition-colors flex items-center justify-center gap-2",
-                            project.status === 'published' ? "bg-background hover:bg-surface" : "bg-primary text-white hover:bg-primary/90"
-                          )}
-                        >
-                          {project.status === 'published' ? 'Hide' : 'Show'}
-                        </button>
-                        <Link 
-                          to={`/work/${project.id}`}
-                          target="_blank"
-                          className="w-12 bg-background border-4 border-on-background flex items-center justify-center hover:bg-surface transition-colors"
-                        >
-                          <Eye size={18} />
-                        </Link>
-                        <button 
-                          onClick={() => handleDeleteProject(project.id)}
-                          className="w-12 bg-background border-4 border-on-background flex items-center justify-center text-red-600 hover:bg-red-50 transition-colors"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
-                    </div>
-                  </article>
-                ))
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* TAB 4: SKILLS */}
-        {activeTab === 'skills' && (
-          <div className="space-y-8 md:space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="bg-background p-6 md:p-8 comic-border flex flex-col md:flex-row justify-between items-start md:items-end gap-6 rotate-[-0.5deg]">
-              <div>
-                <h2 className="font-black text-3xl md:text-5xl uppercase tracking-tighter">Professional Armory</h2>
-                <p className="max-w-xl mt-2 border-l-4 border-primary pl-4 font-bold text-sm md:text-base">In the brutal world of creativity, these are your weapons.</p>
-              </div>
-              <button 
-                onClick={handleSyncSkills}
-                className="bg-secondary-container text-on-background w-full md:w-auto font-bold uppercase py-3 px-6 comic-border hover:bg-secondary active:translate-x-[4px] active:translate-y-[4px] active:shadow-none rotate-[1deg] flex items-center justify-center gap-2"
-              >
-                Sync Defaults
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {['Graphic Design', 'Coding Languages', 'Web Development'].map((category) => (
-                <div key={category} className="bg-background comic-border p-6 space-y-6">
-                  <h3 className="font-black text-2xl uppercase border-b-4 border-on-background pb-2 text-primary">{category}</h3>
-                  <div className="space-y-4">
-                    {skills.filter(s => s.category === category).map((skill) => (
-                      <div key={skill.id} className="flex items-center justify-between p-3 bg-surface comic-border shadow-[4px_4px_0px_0px_rgba(27,27,28,1)]">
-                        <span className="font-bold uppercase text-sm">{skill.name}</span>
-                        <div className="flex items-center gap-2">
-                          <button 
-                            onClick={() => toggleSkill(skill.id, skill.enabled)}
-                            className={cn(
-                              "w-12 h-6 flex items-center p-1 rounded-full bg-surface border-2 border-on-background transition-colors",
-                              skill.enabled ? "bg-primary" : "bg-on-background/20"
-                            )}
-                          >
-                            <div className={cn(
-                              "w-3 h-3 rounded-full bg-white transition-all transform",
-                              skill.enabled ? "translate-x-6" : "translate-x-0"
-                            )} />
-                          </button>
-                          <button 
-                            onClick={() => handleDeleteSkill(skill.id)}
-                            className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
-                            title="Delete Skill"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                    {skills.filter(s => s.category === category).length === 0 && (
-                      <p className="text-sm italic opacity-50 uppercase font-bold">No skills in this category.</p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* TAB 3: SETTINGS */}
-        {activeTab === 'settings' && (
-          <div className="max-w-4xl space-y-8 md:space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="bg-background p-6 md:p-8 comic-border rotate-[0.5deg]">
-              <h2 className="font-black text-3xl md:text-5xl uppercase tracking-tighter">Studio Identity</h2>
-              <p className="mt-2 border-l-4 border-primary pl-4 font-bold text-sm md:text-base">Customize your public persona.</p>
-            </div>
-
-            <form onSubmit={handleUpdateProfile} className="bg-surface p-6 md:p-12 comic-border space-y-10">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
-                {/* Profile Pic Preview */}
-                <div className="space-y-4 max-w-[200px] mx-auto md:max-w-none w-full">
-                  <span className="block font-black uppercase text-xs tracking-widest text-on-background/60 text-center md:text-left">Current Vizor</span>
-                  <div className="w-full aspect-square bg-background comic-border rounded-full overflow-hidden relative border-4 md:border-8 border-white p-2">
-                    <img 
-                      src={profileForm.pfp_url || 'https://via.placeholder.com/400'} 
-                      alt="PFP Preview" 
-                      className="w-full h-full object-cover rounded-full"
-                    />
-                  </div>
-                </div>
-
-                {/* Info Fields */}
-                <div className="md:col-span-2 space-y-6">
-                  <div className="space-y-2">
-                    <label className="block font-black uppercase text-sm">Artist Name</label>
-                    <input 
-                      type="text"
-                      value={profileForm.full_name}
-                      onChange={e => setProfileForm({...profileForm, full_name: e.target.value})}
-                      className="w-full bg-background border-4 border-on-background p-4 font-bold outline-none focus:shadow-[4px_4px_0px_0px_rgba(27,27,28,1)]"
-                      placeholder="Your Public Alias"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="block font-black uppercase text-sm">PFP URL / Upload</label>
-                    <div className="flex flex-col gap-4">
-                      <input 
-                        type="url"
-                        value={profileForm.pfp_url}
-                        onChange={e => setProfileForm({...profileForm, pfp_url: e.target.value})}
-                        className="w-full bg-background border-4 border-on-background p-4 font-bold outline-none focus:shadow-[4px_4px_0px_0px_rgba(27,27,28,1)]"
-                        placeholder="Direct image link"
-                      />
-                      <div className="relative">
-                        <input 
-                          type="file"
-                          accept="image/*"
-                          onChange={async (e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              try {
-                                const optimizedBase64 = await compressAndResizeImage(file, 400, 0.8);
-                                setProfileForm({...profileForm, pfp_url: optimizedBase64});
-                              } catch (err) {
-                                console.error('PFP optimization error:', err);
-                                const reader = new FileReader();
-                                reader.onloadend = () => {
-                                  setProfileForm({...profileForm, pfp_url: reader.result as string});
-                                };
-                                reader.readAsDataURL(file);
-                              }
-                            }
-                          }}
-                          className="absolute inset-0 opacity-0 cursor-pointer"
-                        />
-                        <div className="w-full bg-tertiary-container border-4 border-dashed border-on-background p-4 font-black text-center uppercase hover:bg-tertiary transition-colors">
-                          Or Drop/Select Local File
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="block font-black uppercase text-sm">Bio / Origin Story</label>
-                <textarea 
-                  value={profileForm.bio}
-                  onChange={e => setProfileForm({...profileForm, bio: e.target.value})}
-                  className="w-full h-40 bg-background border-4 border-on-background p-4 font-bold outline-none focus:shadow-[4px_4px_0px_0px_rgba(27,27,28,1)] resize-none"
-                  placeholder="Tell the world who you are..."
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 font-mono text-xs">
+              <div className="space-y-1.5">
+                <label className="text-[var(--g-emerald)] uppercase font-bold block">Full Legal Name</label>
+                <input
+                  type="text"
+                  value={profileDraft.fullName}
+                  onChange={(e) => setProfileDraft({ ...profileDraft, fullName: e.target.value })}
+                  className="form-entry"
+                  required
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="block font-black uppercase text-sm">Instagram</label>
-                  <input 
+              <div className="space-y-1.5">
+                <label className="text-[var(--g-emerald)] uppercase font-bold block">Public Moniker / Call-sign</label>
+                <input
+                  type="text"
+                  value={profileDraft.moniker}
+                  onChange={(e) => setProfileDraft({ ...profileDraft, moniker: e.target.value })}
+                  className="form-entry"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1.5 md:col-span-2">
+                <label className="text-[var(--g-emerald)] uppercase font-bold block">Base Location (City, State, Country)</label>
+                <input
+                  type="text"
+                  value={profileDraft.location}
+                  onChange={(e) => setProfileDraft({ ...profileDraft, location: e.target.value })}
+                  className="form-entry"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1.5 md:col-span-2">
+                <label className="text-[var(--g-emerald)] uppercase font-bold block">Professional Headline</label>
+                <input
+                  type="text"
+                  value={profileDraft.headline}
+                  onChange={(e) => setProfileDraft({ ...profileDraft, headline: e.target.value })}
+                  className="form-entry"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[var(--g-emerald)] uppercase font-bold block">Primary Email</label>
+                <input
+                  type="email"
+                  value={profileDraft.email}
+                  onChange={(e) => setProfileDraft({ ...profileDraft, email: e.target.value })}
+                  className="form-entry"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[var(--g-emerald)] uppercase font-bold block">Phone / Mobile (for vCard)</label>
+                <input
+                  type="text"
+                  value={profileDraft.phone || ''}
+                  onChange={(e) => setProfileDraft({ ...profileDraft, phone: e.target.value })}
+                  className="form-entry"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[var(--g-emerald)] uppercase font-bold block">Main Web Hub Domain</label>
+                <input
+                  type="text"
+                  value={profileDraft.webHub}
+                  onChange={(e) => setProfileDraft({ ...profileDraft, webHub: e.target.value })}
+                  className="form-entry"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[var(--g-emerald)] uppercase font-bold block">Security PGP Key Hash</label>
+                <input
+                  type="text"
+                  value={profileDraft.pgpHash}
+                  onChange={(e) => setProfileDraft({ ...profileDraft, pgpHash: e.target.value })}
+                  className="form-entry"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[var(--g-emerald)] uppercase font-bold block">Undergraduate Field / Degree</label>
+                <input
+                  type="text"
+                  value={profileDraft.degree}
+                  onChange={(e) => setProfileDraft({ ...profileDraft, degree: e.target.value })}
+                  className="form-entry"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[var(--g-emerald)] uppercase font-bold block">Specialization Focus</label>
+                <input
+                  type="text"
+                  value={profileDraft.specialization}
+                  onChange={(e) => setProfileDraft({ ...profileDraft, specialization: e.target.value })}
+                  className="form-entry"
+                />
+              </div>
+
+              <div className="space-y-1.5 md:col-span-2">
+                <label className="text-[var(--g-emerald)] uppercase font-bold block">About Narrative / Bio Glimpse</label>
+                <textarea
+                  rows={4}
+                  value={profileDraft.bio}
+                  onChange={(e) => setProfileDraft({ ...profileDraft, bio: e.target.value })}
+                  className="form-entry"
+                />
+              </div>
+            </div>
+
+            {/* Media Uploaders */}
+            <div className="pt-4 border-t border-[var(--g-border)] grid grid-cols-1 sm:grid-cols-2 gap-6 font-mono text-xs">
+              <div className="p-4 rounded bg-[var(--g-black)] border border-[var(--g-border)] space-y-3">
+                <span className="text-[var(--g-neon-flash)] uppercase font-bold block">Cover Banner Photo</span>
+                <img
+                  src={profileDraft.coverBanner}
+                  alt="Cover preview"
+                  className="w-full h-24 object-cover rounded border border-[var(--g-border)]"
+                />
+                <label className="btn-green-glass text-[11px] py-1.5 px-3 block text-center cursor-pointer">
+                  UPLOAD NEW COVER BANNER
+                  <input type="file" accept="image/*" onChange={handleCoverUpload} className="hidden" />
+                </label>
+              </div>
+
+              <div className="p-4 rounded bg-[var(--g-black)] border border-[var(--g-border)] space-y-3">
+                <span className="text-[var(--g-neon-flash)] uppercase font-bold block">Avatar Portrait</span>
+                <div className="flex items-center gap-4">
+                  <img
+                    src={profileDraft.avatarImage}
+                    alt="Avatar preview"
+                    className="w-16 h-16 rounded-full object-cover border-2 border-[var(--g-emerald)] shadow-[0_0_15px_rgba(255,122,0,0.45)]"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).src = '/dipanjan_avatar.svg';
+                    }}
+                  />
+                  <label className="btn-green-glass text-[11px] py-1.5 px-3 block text-center cursor-pointer flex-1">
+                    UPLOAD NEW AVATAR
+                    <input type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-4">
+              <button type="submit" className="btn-green-glass btn-highlight py-2.5 px-6 font-bold">
+                ✓ SAVE V-CARD SPECIFICATIONS
+              </button>
+            </div>
+          </div>
+        </form>
+      )}
+
+      {/* =========================================================================
+          TAB 2: SOCIALS & CHANNELS (SYNCED WITH VIRTUAL CARD & SOCIALS WIDGET)
+          ========================================================================= */}
+      {activeTab === 'socials' && (
+        <div className="space-y-8">
+          {/* Direct Social Form */}
+          <form onSubmit={handleSaveSocials} className="p-6 sm:p-8 rounded-lg bg-[var(--g-frame)] border border-[var(--g-border-solid)] space-y-6">
+            <div className="border-b border-[var(--g-border)] pb-3 flex justify-between items-center">
+              <div>
+                <span className="unit-badge-tag text-[9px]">SOCIAL MATRIX CMS</span>
+                <h2 className="font-display text-2xl font-black text-white uppercase mt-1">
+                  Primary Social Profiles
+                </h2>
+                <p className="text-xs text-[var(--g-muted)] font-mono mt-1">
+                  These links sync automatically to the Virtual Card and the long Socials Widget on the home page.
+                </p>
+              </div>
+              <button type="submit" className="btn-green-glass btn-highlight text-xs py-2 px-5">
+                SAVE SOCIALS
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 font-mono text-xs">
+              <div className="space-y-1.5">
+                <label className="text-[var(--g-emerald)] uppercase font-bold block">Instagram URL</label>
+                <input
+                  type="url"
+                  placeholder="https://instagram.com/dipanjan.baidya"
+                  value={profileDraft.instagramUrl || ''}
+                  onChange={(e) => setProfileDraft({ ...profileDraft, instagramUrl: e.target.value })}
+                  className="form-entry"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[var(--g-emerald)] uppercase font-bold block">Instagram Handle</label>
+                <input
+                  type="text"
+                  placeholder="@dipanjan.baidya"
+                  value={profileDraft.instagramHandle || ''}
+                  onChange={(e) => setProfileDraft({ ...profileDraft, instagramHandle: e.target.value })}
+                  className="form-entry"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[var(--g-emerald)] uppercase font-bold block">LinkedIn Profile URL</label>
+                <input
+                  type="url"
+                  placeholder="https://www.linkedin.com/in/dipanjanbaidya/"
+                  value={profileDraft.linkedinUrl}
+                  onChange={(e) => setProfileDraft({ ...profileDraft, linkedinUrl: e.target.value })}
+                  className="form-entry"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[var(--g-emerald)] uppercase font-bold block">Primary GitHub URL</label>
+                <input
+                  type="url"
+                  placeholder="https://github.com/dipanjanbaidya2007"
+                  value={profileDraft.githubUrl}
+                  onChange={(e) => setProfileDraft({ ...profileDraft, githubUrl: e.target.value })}
+                  className="form-entry"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[var(--g-emerald)] uppercase font-bold block">X / Twitter URL</label>
+                <input
+                  type="url"
+                  placeholder="https://twitter.com/xom669"
+                  value={profileDraft.twitterUrl || ''}
+                  onChange={(e) => setProfileDraft({ ...profileDraft, twitterUrl: e.target.value })}
+                  className="form-entry"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[var(--g-emerald)] uppercase font-bold block">X / Twitter Handle</label>
+                <input
+                  type="text"
+                  placeholder="@xom669"
+                  value={profileDraft.twitterHandle || ''}
+                  onChange={(e) => setProfileDraft({ ...profileDraft, twitterHandle: e.target.value })}
+                  className="form-entry"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[var(--g-emerald)] uppercase font-bold block">Discord Tag / Username</label>
+                <input
+                  type="text"
+                  placeholder="xom669#0"
+                  value={profileDraft.discordHandle || ''}
+                  onChange={(e) => setProfileDraft({ ...profileDraft, discordHandle: e.target.value })}
+                  className="form-entry"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[var(--g-emerald)] uppercase font-bold block">Secondary / Alt GitHub URL</label>
+                <input
+                  type="url"
+                  placeholder="https://github.com/xom669"
+                  value={profileDraft.altGithubUrl}
+                  onChange={(e) => setProfileDraft({ ...profileDraft, altGithubUrl: e.target.value })}
+                  className="form-entry"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-3">
+              <button type="submit" className="btn-green-glass btn-highlight py-2 px-6 font-bold">
+                ✓ SYNCHRONIZE PRIMARY SOCIALS
+              </button>
+            </div>
+          </form>
+
+          {/* Add New Custom Social */}
+          <form onSubmit={handleAddSocial} className="p-6 sm:p-8 rounded-lg bg-[var(--g-frame)] border border-[var(--g-border-solid)] space-y-4 font-mono text-xs">
+            <h3 className="font-display text-xl font-bold text-white uppercase">
+              + Add Custom Social Platform (YouTube, Telegram, Behance, etc.)
+            </h3>
+
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+              <input
+                type="text"
+                required
+                placeholder="Platform (e.g. YouTube)"
+                value={newSocPlatform}
+                onChange={(e) => setNewSocPlatform(e.target.value)}
+                className="form-entry"
+              />
+              <input
+                type="text"
+                required
+                placeholder="Handle / Username (@dipanjan)"
+                value={newSocHandle}
+                onChange={(e) => setNewSocHandle(e.target.value)}
+                className="form-entry"
+              />
+              <input
+                type="url"
+                required
+                placeholder="Full Link (https://...)"
+                value={newSocUrl}
+                onChange={(e) => setNewSocUrl(e.target.value)}
+                className="form-entry"
+              />
+              <input
+                type="text"
+                placeholder="Badge (e.g. VIDEO / LAB)"
+                value={newSocBadge}
+                onChange={(e) => setNewSocBadge(e.target.value)}
+                className="form-entry"
+              />
+            </div>
+
+            <button type="submit" className="btn-green-glass btn-highlight py-2 px-5 font-bold">
+              + INSERT CUSTOM CHANNEL
+            </button>
+          </form>
+
+          {/* Existing Socials List */}
+          <div className="space-y-3 font-mono text-xs">
+            <h3 className="font-display text-xl font-bold text-white uppercase">
+              Configured Social Channels ({socialsDraft.length})
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {socialsDraft.map((soc) => (
+                <div
+                  key={soc.id}
+                  className="p-3.5 rounded bg-[var(--g-black)] border border-[var(--g-border)] flex items-center justify-between gap-3"
+                >
+                  <div className="truncate">
+                    <span className="text-[var(--g-neon-flash)] font-bold block">{soc.platform}</span>
+                    <span className="text-white text-[11px] block">{soc.handle}</span>
+                    <a href={soc.url} target="_blank" rel="noreferrer" className="text-[var(--g-muted)] text-[10px] truncate block hover:underline">
+                      {soc.url}
+                    </a>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteSocial(soc.id)}
+                    className="px-2.5 py-1 rounded bg-red-950/60 border border-red-800 text-red-400 hover:text-white shrink-0 text-[10px]"
+                  >
+                    REMOVE
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          TAB 3: PROJECTS CATALOG
+          ========================================================================= */}
+      {activeTab === 'projects' && (
+        <div className="space-y-8">
+          <form onSubmit={handleAddProjectSubmit} className="p-6 sm:p-8 rounded-lg bg-[var(--g-frame)] border border-[var(--g-border-solid)] space-y-5">
+            <div className="border-b border-[var(--g-border)] pb-3">
+              <span className="unit-badge-tag text-[9px]">CATALOG MANAGEMENT</span>
+              <h2 className="font-display text-2xl font-black text-white uppercase mt-1">
+                + Add New Project Record
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 font-mono text-xs">
+              <div className="space-y-1">
+                <label className="text-[var(--g-emerald)] uppercase block">Project Title *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g., PendriveOS V3.2"
+                  value={newProjectTitle}
+                  onChange={(e) => setNewProjectTitle(e.target.value)}
+                  className="form-entry"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[var(--g-emerald)] uppercase block">Category *</label>
+                <select
+                  value={newProjectCategory}
+                  onChange={(e) => setNewProjectCategory(e.target.value as any)}
+                  className="form-entry"
+                >
+                  <option value="systems">Systems & OS</option>
+                  <option value="branding">Branding & Brochures</option>
+                  <option value="code">Web Code & Hubs</option>
+                  <option value="automation">Input Automation</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[var(--g-emerald)] uppercase block">Badge Tag</label>
+                <input
+                  type="text"
+                  placeholder="e.g., V3.2 RELEASE or CLIENT WORK"
+                  value={newProjectBadge}
+                  onChange={(e) => setNewProjectBadge(e.target.value)}
+                  className="form-entry"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[var(--g-emerald)] uppercase block">Technologies (comma separated)</label>
+                <input
+                  type="text"
+                  placeholder="Alpine Linux, Shell, Kernel, C#"
+                  value={newProjectTags}
+                  onChange={(e) => setNewProjectTags(e.target.value)}
+                  className="form-entry"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[var(--g-emerald)] uppercase block">GitHub Repository URL</label>
+                <input
+                  type="url"
+                  placeholder="https://github.com/..."
+                  value={newProjectGithub}
+                  onChange={(e) => setNewProjectGithub(e.target.value)}
+                  className="form-entry"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[var(--g-emerald)] uppercase block">Live Demo / URL</label>
+                <input
+                  type="url"
+                  placeholder="https://xom669.in"
+                  value={newProjectLive}
+                  onChange={(e) => setNewProjectLive(e.target.value)}
+                  className="form-entry"
+                />
+              </div>
+
+              <div className="space-y-1 md:col-span-2">
+                <label className="text-[var(--g-emerald)] uppercase block">Project Description *</label>
+                <textarea
+                  rows={3}
+                  required
+                  placeholder="Detailed summary of the project architecture and outcomes..."
+                  value={newProjectDesc}
+                  onChange={(e) => setNewProjectDesc(e.target.value)}
+                  className="form-entry"
+                />
+              </div>
+            </div>
+
+            <button type="submit" className="btn-green-glass btn-highlight py-2 px-5 font-bold text-xs font-mono">
+              + INSERT PROJECT TO CATALOG
+            </button>
+          </form>
+
+          {/* List Existing Projects */}
+          <div className="space-y-4">
+            <h3 className="font-display text-2xl font-black text-white uppercase">
+              Current Project Catalog ({projects.length})
+            </h3>
+            {projects.map((p) => (
+              <div
+                key={p.id}
+                className="p-5 rounded-lg bg-[var(--g-frame)] border border-[var(--g-border-solid)] flex flex-col md:flex-row md:items-center justify-between gap-4"
+              >
+                <div className="space-y-1 max-w-2xl font-mono text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="unit-badge-tag text-[9px]">{p.badge}</span>
+                    <span className="text-[var(--g-muted)] uppercase">({p.category})</span>
+                  </div>
+                  <h4 className="font-display text-xl font-bold text-white pt-1">{p.title}</h4>
+                  <p className="text-[var(--g-muted)] leading-relaxed">{p.desc}</p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => deleteProject(p.id)}
+                    className="px-3 py-1.5 rounded bg-red-950/60 border border-red-800 text-red-400 hover:text-white font-mono text-xs"
+                  >
+                    DELETE
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          TAB 4: STUDY VAULT
+          ========================================================================= */}
+      {activeTab === 'materials' && (
+        <div className="space-y-8">
+          <form onSubmit={handleAddMaterialSubmit} className="p-6 sm:p-8 rounded-lg bg-[var(--g-frame)] border border-[var(--g-border-solid)] space-y-5">
+            <div className="border-b border-[var(--g-border)] pb-3">
+              <span className="unit-badge-tag text-[9px]">VAULT REPOSITORY</span>
+              <h2 className="font-display text-2xl font-black text-white uppercase mt-1">
+                + Add Study Material / Resource
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 font-mono text-xs">
+              <div className="space-y-1">
+                <label className="text-[var(--g-emerald)] uppercase block">Material Title *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g., Linux Kernel Internals Deck"
+                  value={newMatTitle}
+                  onChange={(e) => setNewMatTitle(e.target.value)}
+                  className="form-entry"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[var(--g-emerald)] uppercase block">Category *</label>
+                <select
+                  value={newMatCategory}
+                  onChange={(e) => setNewMatCategory(e.target.value as any)}
+                  className="form-entry"
+                >
+                  <option value="systems">Systems & Scripts</option>
+                  <option value="dsa">DSA & Algorithms</option>
+                  <option value="design">Design Assets</option>
+                  <option value="notes">OS & Kernel Notes</option>
+                  <option value="web">Starter Boilerplates</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[var(--g-emerald)] uppercase block">File Format Tag</label>
+                <input
+                  type="text"
+                  placeholder="PDF, TAR.GZ, FIGMA, ZIP"
+                  value={newMatFormat}
+                  onChange={(e) => setNewMatFormat(e.target.value)}
+                  className="form-entry"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[var(--g-emerald)] uppercase block">File Size / Pages</label>
+                <input
+                  type="text"
+                  placeholder="14.2 MB or 48 Pages"
+                  value={newMatSize}
+                  onChange={(e) => setNewMatSize(e.target.value)}
+                  className="form-entry"
+                />
+              </div>
+
+              <div className="space-y-1 md:col-span-2">
+                <label className="text-[var(--g-emerald)] uppercase block">Download / Repository Link *</label>
+                <input
+                  type="url"
+                  required
+                  placeholder="https://github.com/... or Google Drive URL"
+                  value={newMatUrl}
+                  onChange={(e) => setNewMatUrl(e.target.value)}
+                  className="form-entry"
+                />
+              </div>
+
+              <div className="space-y-1 md:col-span-2">
+                <label className="text-[var(--g-emerald)] uppercase block">Description</label>
+                <textarea
+                  rows={3}
+                  placeholder="Brief synopsis of what is included in this package..."
+                  value={newMatDesc}
+                  onChange={(e) => setNewMatDesc(e.target.value)}
+                  className="form-entry"
+                />
+              </div>
+            </div>
+
+            <button type="submit" className="btn-green-glass btn-highlight py-2 px-5 font-bold text-xs font-mono">
+              + INSERT MATERIAL TO VAULT
+            </button>
+          </form>
+
+          {/* List Existing Materials */}
+          <div className="space-y-4">
+            <h3 className="font-display text-2xl font-black text-white uppercase">
+              Current Vault Resources ({materials.length})
+            </h3>
+            {materials.map((m) => (
+              <div
+                key={m.id}
+                className="p-5 rounded-lg bg-[var(--g-frame)] border border-[var(--g-border-solid)] flex flex-col md:flex-row md:items-center justify-between gap-4"
+              >
+                <div className="space-y-1 max-w-2xl font-mono text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="unit-badge-tag text-[9px]">{m.fileType}</span>
+                    <span className="text-[var(--g-muted)]">SIZE: {m.fileSize}</span>
+                    <span className="text-[var(--g-emerald)] uppercase">({m.category})</span>
+                  </div>
+                  <h4 className="font-display text-xl font-bold text-white pt-1">{m.title}</h4>
+                  <p className="text-[var(--g-muted)] leading-relaxed">{m.desc}</p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => deleteMaterial(m.id)}
+                    className="px-3 py-1.5 rounded bg-red-950/60 border border-red-800 text-red-400 hover:text-white font-mono text-xs"
+                  >
+                    DELETE
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          TAB 5: TECHNICAL STACK / 25-SKILL ARMORY
+          ========================================================================= */}
+      {activeTab === 'skills' && (
+        <div className="space-y-6">
+          <div className="p-6 sm:p-8 rounded-lg bg-[var(--g-frame)] border border-[var(--g-border-solid)] space-y-6">
+            <div className="border-b border-[var(--g-border)] pb-3">
+              <span className="unit-badge-tag text-[9px]">SKILLS ARMORY</span>
+              <h2 className="font-display text-2xl font-black text-white uppercase mt-1">
+                Manage Technical Stack
+              </h2>
+            </div>
+
+            <form onSubmit={handleAddSkill} className="flex gap-3">
+              <input
+                type="text"
+                placeholder="Add new skill (e.g. Rust, WebGL Shaders, Go)..."
+                value={newSkillInput}
+                onChange={(e) => setNewSkillInput(e.target.value)}
+                className="form-entry flex-1 font-mono text-xs"
+              />
+              <button type="submit" className="btn-green-glass btn-highlight py-2 px-5 font-bold text-xs font-mono shrink-0">
+                + ADD SKILL
+              </button>
+            </form>
+
+            <div className="space-y-2">
+              <span className="font-mono text-xs text-[var(--g-muted)] block">
+                Active Armory ({skills.length} skills): Click [✕] to remove any skill.
+              </span>
+              <div className="flex flex-wrap gap-2 pt-2">
+                {skills.map((skill) => (
+                  <span
+                    key={skill}
+                    className="px-3 py-1.5 rounded bg-[rgba(52,16,91,0.45)] border border-[var(--g-border)] font-mono text-xs text-white flex items-center gap-2"
+                  >
+                    <span>{skill}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveSkill(skill)}
+                      className="text-red-400 hover:text-red-300 font-bold ml-1"
+                      title="Remove skill"
+                    >
+                      ✕
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          TAB 6: JOURNEY & EDUCATION
+          ========================================================================= */}
+      {activeTab === 'journey' && (
+        <div className="space-y-8">
+          <form onSubmit={handleAddJourneySubmit} className="p-6 sm:p-8 rounded-lg bg-[var(--g-frame)] border border-[var(--g-border-solid)] space-y-5">
+            <div className="border-b border-[var(--g-border)] pb-3">
+              <span className="unit-badge-tag text-[9px]">CHRONOLOGICAL FORMATION</span>
+              <h2 className="font-display text-2xl font-black text-white uppercase mt-1">
+                + Add Journey / Milestone Entry
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 font-mono text-xs">
+              <div className="space-y-1">
+                <label className="text-[var(--g-emerald)] uppercase block">Time Period *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g., 2024 — Present"
+                  value={newJourneyPeriod}
+                  onChange={(e) => setNewJourneyPeriod(e.target.value)}
+                  className="form-entry"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[var(--g-emerald)] uppercase block">Status Badge</label>
+                <input
+                  type="text"
+                  placeholder="e.g., ACTIVE ENROLLMENT or COMPLETED"
+                  value={newJourneyStatus}
+                  onChange={(e) => setNewJourneyStatus(e.target.value)}
+                  className="form-entry"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[var(--g-emerald)] uppercase block">Degree / Title *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g., B.Tech in Computer Science"
+                  value={newJourneyTitle}
+                  onChange={(e) => setNewJourneyTitle(e.target.value)}
+                  className="form-entry"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[var(--g-emerald)] uppercase block">Institution / Council *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g., Technical Campus, Kolkata"
+                  value={newJourneyInstitution}
+                  onChange={(e) => setNewJourneyInstitution(e.target.value)}
+                  className="form-entry"
+                />
+              </div>
+
+              <div className="space-y-1 md:col-span-2">
+                <label className="text-[var(--g-emerald)] uppercase block">Description</label>
+                <textarea
+                  rows={3}
+                  placeholder="Specialization focus, coursework, distinctions..."
+                  value={newJourneyDesc}
+                  onChange={(e) => setNewJourneyDesc(e.target.value)}
+                  className="form-entry"
+                />
+              </div>
+            </div>
+
+            <button type="submit" className="btn-green-glass btn-highlight py-2 px-5 font-bold text-xs font-mono">
+              + INSERT JOURNEY ENTRY
+            </button>
+          </form>
+
+          {/* List Existing Journey */}
+          <div className="space-y-4">
+            <h3 className="font-display text-2xl font-black text-white uppercase">
+              Current Journey Milestones ({journey.length})
+            </h3>
+            {journey.map((j) => (
+              <div
+                key={j.id}
+                className="p-5 rounded-lg bg-[var(--g-frame)] border border-[var(--g-border-solid)] flex flex-col md:flex-row md:items-center justify-between gap-4"
+              >
+                <div className="space-y-1 max-w-2xl font-mono text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="unit-badge-tag text-[9px]">{j.period}</span>
+                    <span className="text-[var(--g-neon-flash)] font-bold">{j.status}</span>
+                  </div>
+                  <h4 className="font-display text-xl font-bold text-white pt-1">{j.title}</h4>
+                  <span className="text-[var(--g-emerald)] block">{j.institution}</span>
+                  <p className="text-[var(--g-muted)] leading-relaxed pt-1">{j.desc}</p>
+                </div>
+                <div className="shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => updateJourney(journey.filter((item) => item.id !== j.id))}
+                    className="px-3 py-1.5 rounded bg-red-950/60 border border-red-800 text-red-400 hover:text-white font-mono text-xs"
+                  >
+                    DELETE
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          TAB 7: HEADER, FOOTER & PASSCODE TELEMETRY
+          ========================================================================= */}
+      {activeTab === 'telemetry' && (
+        <div className="space-y-6">
+          <form onSubmit={handleSaveTelemetry} className="p-6 sm:p-8 rounded-lg bg-[var(--g-frame)] border border-[var(--g-border-solid)] space-y-6 font-mono text-xs">
+            <div className="border-b border-[var(--g-border)] pb-3">
+              <span className="unit-badge-tag text-[9px]">GLOBAL TELEMETRY</span>
+              <h2 className="font-display text-2xl font-black text-white uppercase mt-1">
+                Header & Footer Text Configuration
+              </h2>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-[var(--g-emerald)] uppercase font-bold block">
+                  Running Marquee Ticker Text (Infinite loop at top)
+                </label>
+                <textarea
+                  rows={2}
+                  value={headerDraft.tickerText}
+                  onChange={(e) => setHeaderDraft({ ...headerDraft, tickerText: e.target.value })}
+                  className="form-entry font-mono"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[var(--g-emerald)] uppercase font-bold block">
+                    Header Brand Main Title
+                  </label>
+                  <input
                     type="text"
-                    value={profileForm.instagram}
-                    onChange={e => setProfileForm({...profileForm, instagram: e.target.value})}
-                    className="w-full bg-background border-4 border-on-background p-4 font-bold outline-none"
-                    placeholder="@username"
+                    value={headerDraft.brandTitle}
+                    onChange={(e) => setHeaderDraft({ ...headerDraft, brandTitle: e.target.value })}
+                    className="form-entry font-mono"
+                    required
                   />
                 </div>
-                <div className="space-y-2">
-                  <label className="block font-black uppercase text-sm">Twitter/X</label>
-                  <input 
+
+                <div className="space-y-1.5">
+                  <label className="text-[var(--g-emerald)] uppercase font-bold block">
+                    Header Brand Sub-Badge
+                  </label>
+                  <input
                     type="text"
-                    value={profileForm.twitter}
-                    onChange={e => setProfileForm({...profileForm, twitter: e.target.value})}
-                    className="w-full bg-background border-4 border-on-background p-4 font-bold outline-none"
-                    placeholder="@username"
+                    value={headerDraft.brandBadge}
+                    onChange={(e) => setHeaderDraft({ ...headerDraft, brandBadge: e.target.value })}
+                    className="form-entry font-mono"
+                    required
                   />
                 </div>
               </div>
 
-              <button 
-                type="submit"
-                disabled={loading}
-                className="w-full md:w-auto bg-primary text-white font-black uppercase py-4 px-12 comic-border hover:bg-primary/90 flex items-center justify-center gap-3 transition-all active:translate-y-1 shadow-[8px_8px_0px_0px_rgba(27,27,28,1)]"
-              >
-                <Save size={20} /> {loading ? 'Saving Transmission...' : 'Update Identity'}
-              </button>
-            </form>
-          </div>
-        )}
-
-        {/* MODAL: ADD/EDIT PROJECT */}
-        {isAdding && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-on-background/50 backdrop-blur-sm">
-            <div className="bg-background comic-border w-full max-w-2xl p-4 sm:p-8 max-h-[95vh] overflow-y-auto shadow-[8px_8px_0px_0px_rgba(27,27,28,1)] sm:shadow-[12px_12px_0px_0px_rgba(27,27,28,1)]">
-              <h3 className="font-black text-2xl sm:text-3xl uppercase mb-6 flex items-center gap-3">
-                <CloudUpload className="text-primary" /> {editingProject ? 'Modify Panel' : 'Create New Panel'}
-              </h3>
-              <form onSubmit={handleAddProject} className="space-y-6">
-                <div>
-                  <label className="block font-bold uppercase text-xs sm:text-sm mb-2 text-on-background">Project Title</label>
-                  <input 
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-3 border-t border-[var(--g-border)]">
+                <div className="space-y-1.5">
+                  <label className="text-[var(--g-emerald)] uppercase font-bold block">
+                    Footer Brandmark Name
+                  </label>
+                  <input
+                    type="text"
+                    value={footerDraft.brandmarkText}
+                    onChange={(e) => setFooterDraft({ ...footerDraft, brandmarkText: e.target.value })}
+                    className="form-entry font-mono"
                     required
-                    type="text" 
-                    value={newProject.title}
-                    onChange={(e) => setNewProject({...newProject, title: e.target.value})}
-                    className="w-full bg-surface border-4 border-on-background p-3 sm:p-4 font-bold focus:shadow-[4px_4px_0px_0px_rgba(27,27,28,1)] outline-none"
-                    placeholder="E.g. Neon Streets"
                   />
                 </div>
-                <div>
-                  <label className="block font-bold uppercase text-sm mb-2 text-on-background">Description</label>
-                  <textarea 
+
+                <div className="space-y-1.5">
+                  <label className="text-[var(--g-emerald)] uppercase font-bold block">
+                    Footer Brandmark Sub-Text
+                  </label>
+                  <input
+                    type="text"
+                    value={footerDraft.subText}
+                    onChange={(e) => setFooterDraft({ ...footerDraft, subText: e.target.value })}
+                    className="form-entry font-mono"
                     required
-                    value={newProject.description}
-                    onChange={(e) => setNewProject({...newProject, description: e.target.value})}
-                    className="w-full bg-surface border-4 border-on-background p-4 font-bold focus:shadow-[4px_4px_0px_0px_rgba(27,27,28,1)] outline-none h-32"
-                    placeholder="What's the story behind this one?"
                   />
                 </div>
-                <div>
-                  <label className="block font-bold uppercase text-sm mb-2 text-on-background">Main Image URL / Upload</label>
-                  <div className="flex flex-col gap-4">
-                    <input 
-                      required
-                      type="url" 
-                      value={newProject.image_url}
-                      onChange={(e) => setNewProject({...newProject, image_url: e.target.value})}
-                      className="w-full bg-surface border-4 border-on-background p-4 font-bold focus:shadow-[4px_4px_0px_0px_rgba(27,27,28,1)] outline-none"
-                      placeholder="https://..."
-                    />
-                    <div className="relative">
-                      <input 
-                        type="file"
-                        accept="image/*"
-                        onChange={async (e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            try {
-                              const optimizedBase64 = await compressAndResizeImage(file, 1080, 0.75);
-                              setNewProject({...newProject, image_url: optimizedBase64});
-                            } catch (err) {
-                              console.error('Main image optimization error:', err);
-                              const reader = new FileReader();
-                              reader.onloadend = () => {
-                                setNewProject({...newProject, image_url: reader.result as string});
-                              };
-                              reader.readAsDataURL(file);
-                            }
-                          }
-                        }}
-                        className="absolute inset-0 opacity-0 cursor-pointer"
-                      />
-                      <div className="w-full bg-secondary-container border-4 border-dashed border-on-background p-4 font-black text-center uppercase hover:bg-secondary transition-colors">
-                        Drop / Select Main Image
-                      </div>
-                    </div>
-                  </div>
-                  {newProject.image_url && (
-                    <div className="mt-4 p-2 bg-surface comic-border w-24 h-24 overflow-hidden">
-                      <img src={newProject.image_url} alt="Main preview" className="w-full h-full object-cover" />
-                    </div>
-                  )}
-                </div>
 
-                <div>
-                  <label className="block font-bold uppercase text-sm mb-2 text-on-background">Additional Project Photos (Optional)</label>
-                  <div className="space-y-4">
-                    <div className="relative">
-                      <input 
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        onChange={async (e) => {
-                          const files = e.target.files;
-                          if (files) {
-                            const newBase64Images: string[] = [];
-                            const fileArray = Array.from(files) as File[];
-                            
-                            for (const file of fileArray) {
-                              try {
-                                const optimized = await compressAndResizeImage(file, 1080, 0.75);
-                                newBase64Images.push(optimized);
-                              } catch (err) {
-                                console.error('Sub-image optimization error:', err);
-                                const base64 = await new Promise<string>((resolve) => {
-                                  const reader = new FileReader();
-                                  reader.onloadend = () => resolve(reader.result as string);
-                                  reader.readAsDataURL(file);
-                                });
-                                newBase64Images.push(base64);
-                              }
-                            }
-                            
-                            setNewProject(prev => ({
-                              ...prev,
-                              images: [...prev.images, ...newBase64Images]
-                            }));
-                          }
-                        }}
-                        className="absolute inset-0 opacity-0 cursor-pointer"
-                      />
-                      <div className="w-full bg-tertiary-container border-4 border-dashed border-on-background p-4 font-black text-center uppercase hover:bg-tertiary transition-colors">
-                        Add More Photos
-                      </div>
-                    </div>
-
-                    {newProject.images.length > 0 && (
-                      <div className="grid grid-cols-4 gap-2 bg-surface p-4 comic-border max-h-48 overflow-y-auto">
-                        {newProject.images.map((img, idx) => (
-                          <div key={idx} className="relative group aspect-square comic-border overflow-hidden">
-                            <img src={img} alt={`Preview ${idx}`} className="w-full h-full object-cover" />
-                            <button 
-                              type="button"
-                              onClick={() => {
-                                const updated = [...newProject.images];
-                                updated.splice(idx, 1);
-                                setNewProject({...newProject, images: updated});
-                              }}
-                              className="absolute inset-0 bg-red-600/80 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
-                            >
-                              <Trash2 size={20} />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <label className="block font-bold uppercase text-sm mb-2 text-on-background">Destination URL (Optional)</label>
-                  <input 
-                    type="url" 
-                    value={newProject.link_url}
-                    onChange={(e) => setNewProject({...newProject, link_url: e.target.value})}
-                    className="w-full bg-surface border-4 border-on-background p-4 font-bold focus:shadow-[4px_4px_0px_0px_rgba(27,27,28,1)] outline-none"
-                    placeholder="https://behance.net/..."
+                <div className="space-y-1.5">
+                  <label className="text-[var(--g-emerald)] uppercase font-bold block">
+                    Footer Year
+                  </label>
+                  <input
+                    type="text"
+                    value={footerDraft.year}
+                    onChange={(e) => setFooterDraft({ ...footerDraft, year: e.target.value })}
+                    className="form-entry font-mono"
+                    required
                   />
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block font-bold uppercase text-sm mb-2 text-on-background">Panel Size</label>
-                    <select 
-                      value={newProject.size}
-                      onChange={(e) => setNewProject({...newProject, size: e.target.value as any})}
-                      className="w-full bg-surface border-4 border-on-background p-4 font-bold outline-none"
-                    >
-                      <option value="square">Standard Square</option>
-                      <option value="large">Big Banner (Wide)</option>
-                      <option value="tall">Tall Comic Panel</option>
-                      <option value="wide">Full Width</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block font-bold uppercase text-sm mb-2 text-on-background">Status</label>
-                    <select 
-                      value={newProject.status}
-                      onChange={(e) => setNewProject({...newProject, status: e.target.value as any})}
-                      className="w-full bg-surface border-4 border-on-background p-4 font-bold outline-none"
-                    >
-                      <option value="published">Published</option>
-                      <option value="draft">Draft</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                  <button 
-                    type="submit"
-                    disabled={loading}
-                    className="flex-1 bg-primary text-white font-black uppercase py-4 comic-border hover:bg-primary/90 disabled:opacity-50 transition-all hover:-translate-y-1 shadow-[6px_6px_0px_0px_rgba(27,27,28,1)] order-1 sm:order-none"
-                  >
-                    {loading ? 'Synthesizing...' : (editingProject ? 'Update Panel' : 'Upload Transmission')}
-                  </button>
-                  <button 
-                    type="button"
-                    onClick={() => {
-                      setIsAdding(false);
-                      setEditingProject(null);
-                      setNewProject({ title: '', description: '', image_url: '', images: [], status: 'published', link_url: '', size: 'square' });
-                    }}
-                    className="bg-background text-on-background font-bold uppercase py-4 px-8 comic-border hover:bg-surface transition-all order-2 sm:order-none"
-                  >
-                    Abort
-                  </button>
-                </div>
-              </form>
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+
+            <div className="flex justify-end pt-3">
+              <button type="submit" className="btn-green-glass btn-highlight py-2.5 px-6 font-bold">
+                ✓ SAVE HEADER & FOOTER TELEMETRY
+              </button>
+            </div>
+          </form>
+
+          {/* Change Admin Passcode Card */}
+          <form onSubmit={handleChangePasscode} className="p-6 sm:p-8 rounded-lg bg-[var(--g-frame)] border border-[var(--g-border-solid)] space-y-4 font-mono text-xs">
+            <div className="border-b border-[var(--g-border)] pb-2 flex items-center gap-2">
+              <span className="text-[var(--g-neon-flash)]">🔒</span>
+              <h3 className="font-display text-xl font-bold text-white uppercase">
+                Change Studio CMS Passcode
+              </h3>
+            </div>
+            <p className="text-[var(--g-muted)]">
+              Current Passcode is active. Enter a new passcode below to update it immediately:
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 max-w-md">
+              <input
+                type="text"
+                required
+                placeholder="New passcode (e.g. 7788)"
+                value={newPasscodeDraft}
+                onChange={(e) => setNewPasscodeDraft(e.target.value)}
+                className="form-entry flex-1"
+              />
+              <button type="submit" className="btn-green-glass btn-highlight py-2 px-5 font-bold shrink-0">
+                UPDATE PASSCODE
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

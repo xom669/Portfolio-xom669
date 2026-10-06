@@ -1,191 +1,185 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
-import React, { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
-import { Helmet } from 'react-helmet-async';
-import { Mail, ExternalLink, Eye } from 'lucide-react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
-import { Project } from '../types';
-import { safeSetItem, safeGetItem } from '../lib/cache';
+import { usePortfolio } from '../context/PortfolioContext';
 
 export default function Work() {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { projects, profile } = usePortfolio();
+  const [currentCategory, setCurrentCategory] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState('');
 
-  useEffect(() => {
-    // Lead from cache first for instant update
-    const cached = safeGetItem('projects_cache');
-    if (cached) {
-       try {
-         const parsed = JSON.parse(cached) as Project[];
-         const publishedOnly = parsed.filter(p => p.status === 'published');
-         setProjects(publishedOnly);
-         setLoading(false);
-       } catch (e) {
-         console.error('Failed to parse cached projects:', e);
-       }
-    }
+  const categories = [
+    { key: 'all', label: 'ALL WORK & COMMISSIONS' },
+    { key: 'systems', label: 'SYSTEMS & OS BUILDS' },
+    { key: 'branding', label: 'BRANDING & BROCHURES' },
+    { key: 'code', label: 'WEB CODE & HUBS' },
+    { key: 'automation', label: 'INPUT AUTOMATION' }
+  ];
 
-    async function fetchProjects() {
-      try {
-        const { data, error } = await supabase
-          .from('projects')
-          .select('*')
-          .eq('status', 'published')
-          .order('created_at', { ascending: false });
-        
-        if (data) {
-          setProjects(data as Project[]);
-
-          // Blend dynamic data back to the cache
-          const cachedAll = safeGetItem('projects_cache');
-          let blended = data as Project[];
-          if (cachedAll) {
-            try {
-              const parsedCached = JSON.parse(cachedAll) as Project[];
-              const draftCached = parsedCached.filter(p => p.status === 'draft');
-              blended = [...data as Project[], ...draftCached];
-            } catch (e) {
-              console.error(e);
-            }
-          }
-          safeSetItem('projects_cache', JSON.stringify(blended));
-        }
-      } catch (err) {
-        console.error('Error fetching projects:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchProjects();
-  }, []);
+  const filteredProjects = projects.filter((item) => {
+    const matchesCat = currentCategory === 'all' || item.category === currentCategory;
+    const matchesSearch =
+      searchQuery === '' ||
+      item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.desc.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.tags.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()));
+    return matchesCat && matchesSearch;
+  });
 
   return (
-    <div className="p-8 md:p-12 max-w-7xl mx-auto w-full flex flex-col gap-16 relative">
-      <Helmet>
-        <title>Project Sketchbook | Selected Works by Dipanjan Baidya (Xom 699)</title>
-        <meta name="description" content="Official showcase of digital designs, art experiments, and custom applications built by Dipanjan Baidya (Xom 699) using modern web tools and brutalist designs." />
-        <meta property="og:title" content="Project Sketchbook | Dipanjan Baidya (Xom 699)" />
-        <meta property="og:description" content="Explore selected art works, custom widgets and creative projects by Dipanjan Baidya, also known as Xom 699." />
-      </Helmet>
-      <header className="relative text-center flex flex-col items-center justify-center py-12">
-        <motion.div 
-          initial={{ scale: 0, rotate: 12 }}
-          animate={{ scale: 1, rotate: 12 }}
-          className="absolute -top-10 -left-10 w-32 h-32 bg-secondary-container starburst flex items-center justify-center comic-border rotate-12 z-20 hover:scale-110 transition-transform"
-        >
-          <span className="font-black text-2xl -rotate-12 italic uppercase">BOOM!</span>
-        </motion.div>
-        
-        <h1 className="font-black text-4xl md:text-6xl uppercase bg-primary text-white inline-block px-8 py-4 comic-border -rotate-2 relative z-10">
-          SELECTED WORKS
-        </h1>
-        
-        <p className="max-w-2xl bg-surface px-6 py-4 comic-border rotate-1 mt-8">
-          A collection of recent visual explorations, digital chaos, and creative problem solving. Built with ink, caffeine, and brutalism.
-        </p>
-      </header>
-
-      {loading ? (
-        <div className="flex justify-center py-20">
-          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin comic-border" />
+    <div className="space-y-10">
+      {/* PAGE HEADER */}
+      <div className="border-b border-[var(--g-border)] pb-6">
+        <div className="flex items-center gap-2 font-mono text-xs text-[var(--g-emerald)] uppercase tracking-wider mb-2">
+          <span>[ CATALOG DECK 01 ]</span>
+          <span>●</span>
+          <span>DEDICATED WORK DIRECTORY</span>
         </div>
-      ) : (
-        <motion.section 
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-100px" }}
-          transition={{ duration: 0.6 }}
-          className="grid grid-cols-1 md:grid-cols-12 gap-8 relative"
-        >
-          {projects.length === 0 ? (
-            <div className="col-span-12 text-center py-20 comic-border bg-surface">
-              <h2 className="font-black text-2xl uppercase">No projects found in the sketchbook yet!</h2>
-              <p className="mt-2">Check back soon or add some content in the admin panel.</p>
+        <h1 className="font-display text-4xl sm:text-6xl font-black text-white uppercase tracking-tight">
+          Work & Projects
+        </h1>
+        <p className="text-sm text-[var(--g-muted)] max-w-2xl mt-2 leading-relaxed">
+          Production systems, custom Linux live ISO toolchains, editorial brochures for luxury property developers, and microsecond-accurate input utilities.
+        </p>
+      </div>
+
+      {/* METRIC BADGE STATS */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="p-4 rounded bg-[var(--g-frame)] border border-[var(--g-border-solid)]">
+          <span className="block font-mono text-[10px] text-[var(--g-muted)] uppercase">Total Showcase</span>
+          <span className="font-display text-3xl font-black text-white">{projects.length}</span>
+        </div>
+        <div className="p-4 rounded bg-[var(--g-frame)] border border-[var(--g-border-solid)]">
+          <span className="block font-mono text-[10px] text-[var(--g-muted)] uppercase">Systems / OS</span>
+          <span className="font-display text-3xl font-black text-[var(--g-emerald)]">
+            {projects.filter((p) => p.category === 'systems').length}
+          </span>
+        </div>
+        <div className="p-4 rounded bg-[var(--g-frame)] border border-[var(--g-border-solid)]">
+          <span className="block font-mono text-[10px] text-[var(--g-muted)] uppercase">Branding & Print</span>
+          <span className="font-display text-3xl font-black text-[var(--g-neon-flash)]">
+            {projects.filter((p) => p.category === 'branding').length}
+          </span>
+        </div>
+        <div className="p-4 rounded bg-[var(--g-frame)] border border-[var(--g-border-solid)]">
+          <span className="block font-mono text-[10px] text-[var(--g-muted)] uppercase">Live Codebases</span>
+          <span className="font-display text-3xl font-black text-white">
+            {projects.filter((p) => p.category === 'code' || p.category === 'web').length}
+          </span>
+        </div>
+      </div>
+
+      {/* TWO-SIDED WORKBENCH */}
+      <div className="two-sided-layout">
+        {/* LEFT STICKY FILTER PANEL */}
+        <div className="left-side-control-panel">
+          <div className="left-panel-title">DIRECTORY FILTERS</div>
+
+          <div className="glimpse-nav-list">
+            {categories.map((cat) => {
+              const count =
+                cat.key === 'all'
+                  ? projects.length
+                  : projects.filter((p) => p.category === cat.key).length;
+              return (
+                <button
+                  key={cat.key}
+                  type="button"
+                  className={`glimpse-nav-item ${currentCategory === cat.key ? 'active' : ''}`}
+                  onClick={() => setCurrentCategory(cat.key)}
+                >
+                  <span>{cat.label}</span>
+                  <span className="indicator text-[10px]">({count})</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="mb-5">
+            <label className="block font-mono text-[10px] text-[var(--g-emerald)] uppercase tracking-wider mb-2">
+              SEARCH BY KEYWORD OR TECH
+            </label>
+            <input
+              type="text"
+              placeholder="e.g., Alpine, C#, Photoshop..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-[var(--g-void)] border border-[var(--g-border)] rounded px-3 py-2 text-xs font-mono text-white placeholder-[var(--g-muted)] outline-none focus:border-[var(--g-emerald)] transition-colors"
+            />
+          </div>
+
+          <div className="p-3.5 rounded bg-[var(--g-void)] border border-[var(--g-border)] font-mono text-xs text-[var(--g-muted)] mb-5">
+            <span className="text-[var(--g-neon-flash)] block font-bold mb-1">PROMPT FOR NEW PROJECTS:</span>
+            To add or reorder items in this catalog, open the dedicated Studio Backend.
+          </div>
+
+          <Link
+            to="/admin"
+            className="btn-quick-add text-center flex items-center justify-center gap-2 text-decoration-none"
+          >
+            <span>⚙ MANAGE IN BACKEND</span>
+          </Link>
+        </div>
+
+        {/* RIGHT SCROLLABLE DECK */}
+        <div className="right-side-scroll-deck">
+          {filteredProjects.length === 0 ? (
+            <div className="p-12 text-center font-mono text-xs text-[var(--g-muted)] border border-dashed border-[var(--g-border)] rounded">
+              NO PROJECTS MATCH THE APPLIED CRITERIA.
             </div>
           ) : (
-            projects.map((project, idx) => {
-              return (
-                <article 
-                  key={project.id || project.title}
-                  className={`
-                    comic-border bg-background flex flex-col relative group overflow-hidden
-                    ${project.size === 'large' ? 'md:col-span-8' : 
-                      project.size === 'tall' ? 'md:col-span-4 md:row-span-2' : 
-                      project.size === 'wide' ? 'md:col-span-8' : 'md:col-span-4'}
-                    ${idx % 2 === 0 ? 'rotate-1' : '-rotate-1'}
-                    hover:rotate-0 transition-all hover:shadow-[8px_8px_0px_0px_rgba(27,27,28,1)]
-                  `}
-                >
-                  <div className={`
-                    w-full overflow-hidden border-b-4 border-on-background relative
-                    ${project.size === 'tall' ? 'h-96 md:h-full' : 'h-64 md:h-96'}
-                  `}>
-                    <Link to={`/work/${project.id}`} className="block w-full h-full">
-                      <img 
-                        src={project.image_url} 
-                        alt={project.title}
-                        loading="lazy"
-                        decoding="async"
-                        className="w-full h-full object-cover filter contrast-125 group-hover:scale-105 transition-transform duration-500"
-                      />
-                    </Link>
-                    
-                    {project.link_url && (
-                      <a 
-                        href={project.link_url} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="absolute top-4 left-4 bg-primary text-white p-2 comic-border opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2 translate-y-4 group-hover:translate-y-0 duration-300 z-10"
+            filteredProjects.map((item) => (
+              <div key={item.id} className="scroll-card-unit">
+                <div>
+                  <span className="unit-badge-tag">{item.badge}</span>
+                  <span className="block font-mono text-[10px] text-[var(--g-muted)] mt-2 uppercase">
+                    CATEGORY: {item.category}
+                  </span>
+                </div>
+
+                <div className="unit-info-center space-y-2">
+                  <h4>{item.title}</h4>
+                  <p>{item.desc}</p>
+                  
+                  {/* Tech Tags */}
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {item.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="px-2 py-0.5 rounded text-[10px] font-mono bg-[rgba(52,16,91,0.45)] border border-[var(--g-border)] text-neutral-200"
                       >
-                        <ExternalLink size={16} />
-                        <span className="font-bold text-xs uppercase">LINK</span>
-                      </a>
-                    )}
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
 
-                    <Link 
-                      to={`/work/${project.id}`}
-                      className="absolute bottom-4 right-4 bg-secondary text-on-secondary px-4 py-2 comic-border font-black uppercase text-sm hover:scale-110 active:scale-95 transition-all shadow-[4px_4px_0px_0px_rgba(27,27,28,1)] z-20 flex items-center gap-2"
+                <div className="flex flex-col sm:flex-row gap-2">
+                  {item.githubUrl && (
+                    <a
+                      href={item.githubUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="unit-action-btn"
                     >
-                      <Eye size={16} />
-                      SEE
-                    </Link>
-                    
-                    <div className="absolute inset-0 bg-halftone-pattern opacity-30 mix-blend-multiply pointer-events-none" />
-                  </div>
-
-                  {project.category && (
-                    <div className="absolute -top-4 -right-4 w-24 h-24 bg-primary-container starburst flex items-center justify-center comic-border rotate-[25deg] z-20 group-hover:scale-110 group-hover:rotate-45 transition-all pointer-events-none">
-                      <span className="font-bold text-white -rotate-[25deg]">{project.category}</span>
-                    </div>
+                      <span>CODE</span> ↗
+                    </a>
                   )}
-
-                  <div className="p-6 bg-background">
-                    <h2 className="font-black text-3xl uppercase underline decoration-secondary decoration-4 mb-2">
-                      {project.title}
-                    </h2>
-                    <p className="opacity-80 line-clamp-3">
-                      {project.description}
-                    </p>
-                  </div>
-                </article>
-              );
-            })
+                  {item.liveUrl && (
+                    <a
+                      href={item.liveUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="unit-action-btn bg-[var(--g-emerald)] text-[var(--g-void)] font-black hover:bg-white"
+                    >
+                      <span>LIVE</span> ↗
+                    </a>
+                  )}
+                </div>
+              </div>
+            ))
           )}
-        </motion.section>
-      )}
-
-      {/* Floating Action Button */}
-      <a 
-        href="mailto:dipanjanbaidya2007@gmail.com"
-        className="fixed bottom-8 right-8 z-50 bg-primary text-white w-16 h-16 rounded-full comic-border flex items-center justify-center hover:scale-110 transition-all group shadow-[4px_4px_0px_0px_#1b1b1c]"
-      >
-         <Mail className="group-hover:rotate-12 transition-transform" />
-      </a>
+        </div>
+      </div>
     </div>
   );
 }
