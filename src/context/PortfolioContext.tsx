@@ -268,8 +268,8 @@ const DEFAULT_MILESTONES: MilestoneItem[] = [
 const DEFAULT_HEADER_CONFIG: HeaderConfig = {
   showHeader: true,
   showTicker: false,
-  brandTitle: 'Identity Card',
-  brandBadge: 'XOM669',
+  brandTitle: '',
+  brandBadge: '',
   tickerText: 'DIPANJAN BAIDYA • CREATIVE DEVELOPER & DIGITAL ARTIST • KOLKATA, INDIA • SYSTEMS & DESIGN',
   showCard: true,
   customHeroText: '',
@@ -349,7 +349,11 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
   );
   const [headerConfig, setHeaderConfig] = useState<HeaderConfig>(() => {
     const saved = loadStorage<Partial<HeaderConfig>>('xom669_header_config', DEFAULT_HEADER_CONFIG);
-    return { ...DEFAULT_HEADER_CONFIG, ...saved };
+    const merged = { ...DEFAULT_HEADER_CONFIG, ...saved };
+    if (merged.brandTitle && merged.brandTitle.toLowerCase() === 'identity card') {
+      merged.brandTitle = '';
+    }
+    return merged;
   });
   const [footerConfig, setFooterConfig] = useState<FooterConfig>(() =>
     loadStorage('xom669_footer_config', DEFAULT_FOOTER_CONFIG)

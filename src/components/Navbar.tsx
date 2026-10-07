@@ -5,7 +5,6 @@ import { usePortfolio } from '../context/PortfolioContext';
 export function Navbar() {
   const { headerConfig } = usePortfolio();
   const [kolkataTime, setKolkataTime] = useState('');
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const updateTime = () => {
@@ -35,10 +34,10 @@ export function Navbar() {
   const navLinks = [
     {
       to: '/',
-      label: 'Identity',
+      label: 'Home',
       icon: (
         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
         </svg>
       )
     },
@@ -80,6 +79,12 @@ export function Navbar() {
     }
   ];
 
+  // Check if there is a custom brand title that is NOT "Identity Card"
+  const showCustomBrand =
+    headerConfig.brandTitle &&
+    headerConfig.brandTitle.trim().toLowerCase() !== 'identity card' &&
+    headerConfig.brandTitle.trim() !== '';
+
   return (
     <header className="fixed-site-header">
       {/* OPTIONAL TICKER MARQUEE (CONFIGURABLE VIA BACKEND CMS) */}
@@ -87,103 +92,52 @@ export function Navbar() {
         <div className="header-ticker" aria-hidden="true">
           <div className="header-ticker-track">
             <span>{headerConfig.tickerText}</span>
-            <span className="ticker-chip">IDENTITY HUB</span>
+            <span className="ticker-chip">SYSTEMS HUB</span>
             <span className="ticker-beacon">●</span>
             <span>{headerConfig.tickerText}</span>
-            <span className="ticker-chip">IDENTITY HUB</span>
+            <span className="ticker-chip">SYSTEMS HUB</span>
           </div>
         </div>
       )}
 
-      {/* SLEEK MINIMAL NAVBAR */}
+      {/* SLEEK NAVBAR: All menus line up cleanly without cropping */}
       <div className="header-navbar">
-        <Link to="/" className="header-brand-logo text-decoration-none group">
-          <span className="w-2 h-2 rounded-full bg-[var(--g-emerald)] shadow-[0_0_8px_var(--g-emerald)] group-hover:scale-125 transition-transform" />
-          <span className="brand-main-text text-sm sm:text-base font-bold tracking-tight">
-            {headerConfig.brandTitle || 'Identity Card'}
-          </span>
-          {headerConfig.brandBadge && (
-            <span className="brand-sub-badge text-[9px] uppercase tracking-wider py-0.5 px-1.5 hidden sm:inline-block">
-              {headerConfig.brandBadge}
+        {/* Optional Brand Title on Desktop (Hidden on mobile or if not set, no 'Identity Card') */}
+        {showCustomBrand && (
+          <Link to="/" className="header-brand-logo hidden md:flex items-center gap-2 text-decoration-none group">
+            <span className="w-2 h-2 rounded-full bg-[var(--g-emerald)] shadow-[0_0_8px_var(--g-emerald)] group-hover:scale-125 transition-transform" />
+            <span className="brand-main-text text-xs sm:text-sm font-bold tracking-tight text-white group-hover:text-[var(--g-neon-flash)] transition-colors">
+              {headerConfig.brandTitle}
             </span>
-          )}
-        </Link>
+          </Link>
+        )}
 
-        {/* Desktop Navigation - Sleek & Spaced to never overflow */}
-        <nav className="header-nav-links hidden md:flex items-center gap-1 sm:gap-2">
+        {/* Navigation Menus: Perfectly lined up on phones and PCs */}
+        <nav className="w-full md:w-auto flex items-center justify-between sm:justify-center gap-1 sm:gap-2">
           {navLinks.map((link) => (
             <NavLink
               key={link.to}
               to={link.to}
               className={({ isActive }) =>
-                `flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-mono transition-all ${
+                `flex-1 sm:flex-initial flex items-center justify-center gap-1 sm:gap-1.5 py-1.5 px-2 sm:px-3 rounded-md sm:rounded-full text-[11px] sm:text-xs font-mono transition-all text-center ${
                   isActive
-                    ? 'bg-[rgba(255,122,0,0.18)] text-[var(--g-neon-flash)] border border-[rgba(255,122,0,0.4)] shadow-[0_0_12px_rgba(255,122,0,0.2)] font-bold'
+                    ? 'bg-[rgba(255,122,0,0.2)] text-[var(--g-neon-flash)] border border-[rgba(255,122,0,0.5)] font-bold shadow-[0_0_10px_rgba(255,122,0,0.25)]'
                     : 'text-[var(--g-offwhite)] hover:text-white hover:bg-white/5 border border-transparent'
                 }`
               }
             >
-              <span className="opacity-80">{link.icon}</span>
-              <span>{link.label}</span>
+              <span className="opacity-80 shrink-0">{link.icon}</span>
+              <span className="truncate">{link.label}</span>
             </NavLink>
           ))}
-
-          {/* Compact Kolkata Time - Only on wide desktop to prevent crowding */}
-          <div className="kolkata-time-chip hidden lg:flex items-center gap-1.5 ml-2 pl-3 border-l border-white/10 text-[10px] font-mono text-[var(--g-muted)]">
-            <span className="pulse-dot" />
-            <span>{kolkataTime || 'KOLKATA'}</span>
-          </div>
         </nav>
 
-        {/* Mobile Navigation Trigger */}
-        <div className="flex md:hidden items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="flex items-center gap-1.5 py-1 px-2.5 rounded-md border border-[var(--g-border)] bg-[rgba(255,255,255,0.04)] text-[var(--g-neon-flash)] font-mono text-xs hover:bg-[rgba(255,122,0,0.12)] transition-colors"
-            aria-label="Toggle navigation menu"
-          >
-            <span className="text-sm">{mobileMenuOpen ? '✕' : '☰'}</span>
-            <span>{mobileMenuOpen ? 'CLOSE' : 'MENU'}</span>
-          </button>
+        {/* Compact Kolkata Time on wide desktop screens */}
+        <div className="kolkata-time-chip hidden lg:flex items-center gap-1.5 pl-3 border-l border-white/10 text-[10px] font-mono text-[var(--g-muted)]">
+          <span className="pulse-dot" />
+          <span>{kolkataTime || 'KOLKATA'}</span>
         </div>
       </div>
-
-      {/* Mobile Drawer - Sleek & Compact */}
-      {mobileMenuOpen && (
-        <div className="md:hidden bg-[rgba(10,4,20,0.98)] backdrop-blur-2xl border-b border-[var(--g-border)] px-4 py-3 flex flex-col gap-1 font-mono text-xs shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200">
-          {navLinks.map((link) => (
-            <NavLink
-              key={link.to}
-              to={link.to}
-              onClick={() => setMobileMenuOpen(false)}
-              className={({ isActive }) =>
-                `flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all ${
-                  isActive
-                    ? 'bg-[rgba(255,122,0,0.18)] text-[var(--g-neon-flash)] font-bold border border-[rgba(255,122,0,0.35)]'
-                    : 'text-neutral-300 hover:text-white hover:bg-white/5'
-                }`
-              }
-            >
-              <span className="text-[var(--g-emerald)]">{link.icon}</span>
-              <span className="tracking-wide uppercase text-[11px]">{link.label}</span>
-            </NavLink>
-          ))}
-          <div className="mt-2 pt-2 border-t border-white/10 flex items-center justify-between text-[10px] text-[var(--g-muted)] px-1">
-            <span className="flex items-center gap-1.5">
-              <span className="pulse-dot" />
-              <span>KOLKATA {kolkataTime}</span>
-            </span>
-            <Link
-              to="/admin"
-              onClick={() => setMobileMenuOpen(false)}
-              className="text-[var(--g-emerald)] hover:underline"
-            >
-              CMS Access
-            </Link>
-          </div>
-        </div>
-      )}
     </header>
   );
 }

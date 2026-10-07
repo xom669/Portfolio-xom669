@@ -166,57 +166,28 @@
 
 /* NAVBAR */
 .header-navbar {
-  max-width: 1360px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 10px 24px;
+  padding: 6px 12px;
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
-  gap: 20px;
+  gap: 8px;
+}
+
+@media (min-width: 768px) {
+  .header-navbar {
+    padding: 8px 20px;
+    justify-content: space-between;
+    gap: 16px;
+  }
 }
 
 .header-brand-logo {
   display: flex;
-  align-items: baseline;
-  gap: 12px;
-  cursor: pointer;
-}
-
-.brand-main-text {
-  font-family: var(--font-display);
-  font-size: 26px;
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: -0.5px;
-  color: var(--g-white);
-  transition: color 0.2s ease;
-}
-
-.brand-main-text:hover {
-  color: var(--g-neon-flash);
-}
-
-.brand-sub-badge {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 1px;
-  color: var(--g-neon-flash);
-  background: rgba(255, 122, 0, 0.12);
-  border: 1px solid var(--g-border);
-  padding: 3px 8px;
-  border-radius: 2px;
-  font-weight: 700;
-}
-
-.header-nav-links {
-  display: flex;
   align-items: center;
-  gap: 20px;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1px;
+  gap: 8px;
+  cursor: pointer;
 }
 
 .header-nav-links a {

@@ -41,17 +41,36 @@ export default function Admin() {
   const [authError, setAuthError] = useState(false);
   const [newPasscodeDraft, setNewPasscodeDraft] = useState('');
 
-  // Handle Passcode Unlock
+  // Reset Confirmation Password Gate State
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [resetPasswordInput, setResetPasswordInput] = useState('');
+  const [resetError, setResetError] = useState(false);
+
+  // Handle Passcode Unlock (strictly checks user's adminPasscode with no backdoors)
   const handleUnlock = (e: FormEvent) => {
     e.preventDefault();
-    if (enteredPasscode.trim() === adminPasscode.trim() || enteredPasscode.trim() === '6699') {
+    if (enteredPasscode.trim() === adminPasscode.trim()) {
       setIsAuthenticated(true);
       sessionStorage.setItem('xom669_admin_session', 'true');
       setAuthError(false);
       showToast('✓ Studio CMS Authenticated & Unlocked.');
     } else {
       setAuthError(true);
-      showToast('✕ Incorrect passcode. Please try again.');
+      showToast('✕ Incorrect passcode. Access denied.');
+    }
+  };
+
+  // Handle Confirmed Reset with Password
+  const handleConfirmReset = (e: FormEvent) => {
+    e.preventDefault();
+    if (resetPasswordInput.trim() === adminPasscode.trim()) {
+      resetToDefaults();
+      setIsResetModalOpen(false);
+      setResetPasswordInput('');
+      setResetError(false);
+      showToast('✓ All fields and sections reset to factory defaults.');
+    } else {
+      setResetError(true);
     }
   };
 
@@ -74,13 +93,19 @@ export default function Admin() {
   ]);
 
   // Local Header/Footer Draft
-  const [headerDraft, setHeaderDraft] = useState({
-    showHeader: true,
-    showTicker: false,
-    showCard: true,
-    customHeroText: '',
-    cardSpacing: 'flush' as 'flush' | 'compact' | 'normal',
-    ...headerConfig
+  const [headerDraft, setHeaderDraft] = useState(() => {
+    const draft = {
+      showHeader: true,
+      showTicker: false,
+      showCard: true,
+      customHeroText: '',
+      cardSpacing: 'flush' as 'flush' | 'compact' | 'normal',
+      ...headerConfig
+    };
+    if (draft.brandTitle && draft.brandTitle.toLowerCase() === 'identity card') {
+      draft.brandTitle = '';
+    }
+    return draft;
   });
   const [footerDraft, setFooterDraft] = useState({ ...footerConfig });
 
@@ -145,7 +170,7 @@ export default function Admin() {
               type="password"
               required
               autoFocus
-              placeholder="Enter passcode (default: 6699)"
+              placeholder="Enter administrator passcode"
               value={enteredPasscode}
               onChange={(e) => {
                 setEnteredPasscode(e.target.value);
@@ -155,7 +180,7 @@ export default function Admin() {
             />
             {authError && (
               <span className="text-red-400 text-[10px] block font-bold pt-1">
-                ✕ Invalid passcode. Default is 6699.
+                ✕ Invalid passcode. Access denied.
               </span>
             )}
           </div>
@@ -397,7 +422,11 @@ export default function Admin() {
           </button>
           <button
             type="button"
-            onClick={resetToDefaults}
+            onClick={() => {
+              setResetPasswordInput('');
+              setResetError(false);
+              setIsResetModalOpen(true);
+            }}
             className="btn-green-glass text-xs py-2 px-3 text-red-400 hover:text-white hover:bg-red-950 border-red-900/50"
             title="Reset all fields to initial defaults"
           >
@@ -405,6 +434,55 @@ export default function Admin() {
           </button>
         </div>
       </div>
+
+      {/* RESET ALL PASSWORD CONFIRMATION MODAL */}
+      {isResetModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="w-full max-w-sm rounded-xl bg-[var(--g-frame)] border border-red-500/50 p-6 space-y-4 shadow-2xl font-mono text-xs animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center gap-2 text-red-400">
+              <span className="text-xl">⚠️</span>
+              <h3 className="font-display text-lg font-bold uppercase text-white">Confirm Factory Reset</h3>
+            </div>
+            <p className="text-[var(--g-muted)]">
+              This will restore all portfolio data to defaults. Please enter your administrator password to authorize:
+            </p>
+            <form onSubmit={handleConfirmReset} className="space-y-3">
+              <input
+                type="password"
+                required
+                autoFocus
+                placeholder="Enter admin password"
+                value={resetPasswordInput}
+                onChange={(e) => {
+                  setResetPasswordInput(e.target.value);
+                  setResetError(false);
+                }}
+                className={`form-entry ${resetError ? 'border-red-500 bg-red-950/30' : ''}`}
+              />
+              {resetError && (
+                <span className="text-red-400 text-[10px] block font-bold">
+                  ✕ Incorrect password. Reset unauthorized.
+                </span>
+              )}
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsResetModalOpen(false)}
+                  className="py-2 px-3 rounded bg-white/5 border border-white/10 hover:bg-white/10 text-neutral-300 font-mono"
+                >
+                  CANCEL
+                </button>
+                <button
+                  type="submit"
+                  className="py-2 px-4 rounded bg-red-600 hover:bg-red-500 text-white font-bold transition-colors font-mono"
+                >
+                  CONFIRM RESET
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* TABS NAVIGATION */}
       <div className="flex flex-wrap gap-2 border-b border-[var(--g-border)] pb-3">
@@ -1337,9 +1415,8 @@ export default function Admin() {
                     type="text"
                     value={headerDraft.brandTitle}
                     onChange={(e) => setHeaderDraft({ ...headerDraft, brandTitle: e.target.value })}
-                    placeholder="Identity Card / Home"
+                    placeholder="Leave empty or enter custom title (e.g. xom669)"
                     className="form-entry font-mono"
-                    required
                   />
                 </div>
 
