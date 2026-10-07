@@ -18,7 +18,7 @@ export function Navbar() {
         }).format(new Date());
         setKolkataTime(`${timeStr} IST`);
       } catch {
-        setKolkataTime('18:30 IST');
+        setKolkataTime('18:30:00 IST');
       }
     };
     updateTime();
@@ -32,15 +32,6 @@ export function Navbar() {
   }
 
   const navLinks = [
-    {
-      to: '/',
-      label: 'Home',
-      icon: (
-        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-        </svg>
-      )
-    },
     {
       to: '/work',
       label: 'Projects',
@@ -79,11 +70,9 @@ export function Navbar() {
     }
   ];
 
-  // Check if there is a custom brand title that is NOT "Identity Card"
-  const showCustomBrand =
-    headerConfig.brandTitle &&
-    headerConfig.brandTitle.trim().toLowerCase() !== 'identity card' &&
-    headerConfig.brandTitle.trim() !== '';
+  const brandTitle = headerConfig.brandTitle && headerConfig.brandTitle.trim().toLowerCase() !== 'identity card'
+    ? headerConfig.brandTitle.trim()
+    : 'xom669';
 
   return (
     <header className="fixed-site-header">
@@ -100,29 +89,50 @@ export function Navbar() {
         </div>
       )}
 
-      {/* SLEEK NAVBAR: All menus line up cleanly without cropping */}
-      <div className="header-navbar">
-        {/* Optional Brand Title on Desktop (Hidden on mobile or if not set, no 'Identity Card') */}
-        {showCustomBrand && (
-          <Link to="/" className="header-brand-logo hidden md:flex items-center gap-2 text-decoration-none group">
-            <span className="w-2 h-2 rounded-full bg-[var(--g-emerald)] shadow-[0_0_8px_var(--g-emerald)] group-hover:scale-125 transition-transform" />
-            <span className="brand-main-text text-xs sm:text-sm font-bold tracking-tight text-white group-hover:text-[var(--g-neon-flash)] transition-colors">
-              {headerConfig.brandTitle}
-            </span>
-          </Link>
-        )}
+      {/* LAYER 1: TOP BAR WITH HOME BUTTON & BRAND IDENTIFIER */}
+      <div className="header-top-layer border-b border-white/10 px-3 sm:px-6 py-1.5 flex items-center justify-between bg-black/40">
+        <NavLink
+          to="/"
+          className={({ isActive }) =>
+            `flex items-center gap-2 py-1 px-2.5 rounded text-xs font-mono font-medium transition-all text-decoration-none group ${
+              isActive
+                ? 'bg-[rgba(255,122,0,0.22)] text-[var(--g-neon-flash)] border border-[rgba(255,122,0,0.5)] shadow-[0_0_10px_rgba(255,122,0,0.25)]'
+                : 'text-neutral-300 hover:text-white hover:bg-white/5 border border-white/10'
+            }`
+          }
+        >
+          <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+          </svg>
+          <span className="font-semibold tracking-wider uppercase">HOME</span>
+          <span className="text-[10px] text-neutral-500 font-mono hidden xs:inline">// {brandTitle}</span>
+        </NavLink>
 
-        {/* Navigation Menus: Perfectly lined up on phones and PCs */}
-        <nav className="w-full md:w-auto flex items-center justify-between sm:justify-center gap-1 sm:gap-2">
+        <div className="flex items-center gap-2">
+          <Link
+            to="/admin"
+            className="flex items-center gap-1.5 py-1 px-2.5 rounded text-[11px] font-mono text-neutral-400 hover:text-white hover:bg-white/5 border border-white/10 transition-colors text-decoration-none"
+            title="Studio CMS"
+          >
+            <span className="text-[10px]">⚙</span>
+            <span className="font-medium uppercase">CMS</span>
+          </Link>
+        </div>
+      </div>
+
+      {/* LAYER 2: NAVIGATION MENUS (PROJECTS, VAULT, ABOUT, CONTACT) */}
+      {/* Strict fixed equal column layout with zero font-size or font-weight shifting */}
+      <div className="header-nav-layer px-2 sm:px-6 py-1.5 bg-black/20">
+        <nav className="max-w-xl mx-auto grid grid-cols-4 gap-1 sm:gap-2">
           {navLinks.map((link) => (
             <NavLink
               key={link.to}
               to={link.to}
               className={({ isActive }) =>
-                `flex-1 sm:flex-initial flex items-center justify-center gap-1 sm:gap-1.5 py-1.5 px-2 sm:px-3 rounded-md sm:rounded-full text-[11px] sm:text-xs font-mono transition-all text-center ${
+                `w-full flex items-center justify-center gap-1 sm:gap-1.5 py-1.5 px-1 sm:px-3 rounded text-[11px] sm:text-xs font-mono font-medium transition-colors text-center text-decoration-none ${
                   isActive
-                    ? 'bg-[rgba(255,122,0,0.2)] text-[var(--g-neon-flash)] border border-[rgba(255,122,0,0.5)] font-bold shadow-[0_0_10px_rgba(255,122,0,0.25)]'
-                    : 'text-[var(--g-offwhite)] hover:text-white hover:bg-white/5 border border-transparent'
+                    ? 'bg-[rgba(255,122,0,0.22)] text-[var(--g-neon-flash)] border border-[rgba(255,122,0,0.5)] shadow-[0_0_10px_rgba(255,122,0,0.2)]'
+                    : 'text-neutral-400 hover:text-white hover:bg-white/5 border border-transparent'
                 }`
               }
             >
@@ -131,11 +141,18 @@ export function Navbar() {
             </NavLink>
           ))}
         </nav>
+      </div>
 
-        {/* Compact Kolkata Time on wide desktop screens */}
-        <div className="kolkata-time-chip hidden lg:flex items-center gap-1.5 pl-3 border-l border-white/10 text-[10px] font-mono text-[var(--g-muted)]">
-          <span className="pulse-dot" />
-          <span>{kolkataTime || 'KOLKATA'}</span>
+      {/* SUB-BAR BELOW HEADER: IST TIME TICKER */}
+      <div className="header-ist-subbar border-t border-b border-white/10 bg-black/60 backdrop-blur-md px-3 sm:px-6 py-1 font-mono text-[10px]">
+        <div className="max-w-xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-1.5 text-neutral-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--g-emerald)] shadow-[0_0_6px_var(--g-emerald)] animate-pulse" />
+            <span className="tracking-wider uppercase">KOLKATA • INDIA</span>
+          </div>
+          <div className="text-[var(--g-neon-flash)] font-medium tracking-wider">
+            ● {kolkataTime || '19:30:00 IST'}
+          </div>
         </div>
       </div>
     </header>

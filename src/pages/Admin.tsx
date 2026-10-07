@@ -1,6 +1,6 @@
 import { useState, type FormEvent, type ChangeEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { usePortfolio } from '../context/PortfolioContext';
+import { usePortfolio, getYoutubeEmbedUrl } from '../context/PortfolioContext';
 import type { ProjectItem, MaterialItem, JourneyItem, SocialLink } from '../types';
 
 export default function Admin() {
@@ -22,6 +22,8 @@ export default function Admin() {
     updateHeaderConfig,
     footerConfig,
     updateFooterConfig,
+    youtubeVideos,
+    updateYoutubeVideos,
     adminPasscode,
     updateAdminPasscode,
     resetToDefaults,
@@ -83,7 +85,7 @@ export default function Admin() {
 
   // Active Tab
   const [activeTab, setActiveTab] = useState<
-    'vcard' | 'socials' | 'projects' | 'materials' | 'skills' | 'journey' | 'telemetry'
+    'vcard' | 'socials' | 'projects' | 'materials' | 'videos' | 'skills' | 'journey' | 'telemetry'
   >('vcard');
 
   // Local Profile Draft
@@ -91,6 +93,14 @@ export default function Admin() {
   const [socialsDraft, setSocialsDraft] = useState<SocialLink[]>([
     ...(profile.socials || [])
   ]);
+
+  // Featured YouTube Videos Draft (allows pasting 2-3 links directly)
+  const [videosDraft, setVideosDraft] = useState<string[]>(() => {
+    if (youtubeVideos && youtubeVideos.length > 0) {
+      return [...youtubeVideos];
+    }
+    return ['', '', ''];
+  });
 
   // Local Header/Footer Draft
   const [headerDraft, setHeaderDraft] = useState(() => {
@@ -207,7 +217,15 @@ export default function Admin() {
   const handleSaveProfile = (e: FormEvent) => {
     e.preventDefault();
     updateProfile(profileDraft);
-    showToast('✓ V-Card identity and personal details saved!');
+    showToast('✓ Profile, Biography, and personal details saved!');
+  };
+
+  // Handle YouTube Videos Save
+  const handleSaveVideos = (e: FormEvent) => {
+    e.preventDefault();
+    const cleanVideos = videosDraft.map((v) => v.trim()).filter(Boolean);
+    updateYoutubeVideos(cleanVideos);
+    showToast('✓ Featured YouTube video showcase saved!');
   };
 
   // Handle Socials Save
@@ -487,13 +505,14 @@ export default function Admin() {
       {/* TABS NAVIGATION */}
       <div className="flex flex-wrap gap-2 border-b border-[var(--g-border)] pb-3">
         {[
-          { key: 'vcard', label: '1. Identity & V-Card' },
-          { key: 'socials', label: '2. Socials & Channels' },
+          { key: 'vcard', label: '1. Profile & Bio' },
+          { key: 'socials', label: '2. Social Media Links' },
           { key: 'projects', label: '3. Projects Catalog' },
           { key: 'materials', label: '4. Study Vault' },
-          { key: 'skills', label: '5. Technical Stack' },
-          { key: 'journey', label: '6. Journey & Education' },
-          { key: 'telemetry', label: '7. Header, Footer & Passcode' }
+          { key: 'videos', label: '5. Featured Videos' },
+          { key: 'skills', label: '6. Technical Stack' },
+          { key: 'journey', label: '7. Journey & Education' },
+          { key: 'telemetry', label: '8. Header, Footer & Passcode' }
         ].map((tab) => (
           <button
             key={tab.key}
@@ -634,14 +653,25 @@ export default function Admin() {
                 />
               </div>
 
-              <div className="space-y-1.5 md:col-span-2">
-                <label className="text-[var(--g-emerald)] uppercase font-bold block">About Narrative / Bio Glimpse</label>
+              <div className="space-y-2 md:col-span-2 p-4 rounded bg-[rgba(255,122,0,0.06)] border border-[rgba(255,122,0,0.3)]">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                  <label className="text-[var(--g-neon-flash)] uppercase font-bold block text-xs">
+                    About Section Biography & Personal Manifesto
+                  </label>
+                  <span className="text-[10px] text-[var(--g-emerald)] font-mono">
+                    ● SYNCS TO ABOUT PAGE & VIRTUAL ID CARD
+                  </span>
+                </div>
                 <textarea
-                  rows={4}
+                  rows={5}
                   value={profileDraft.bio}
                   onChange={(e) => setProfileDraft({ ...profileDraft, bio: e.target.value })}
-                  className="form-entry"
+                  placeholder="Enter your comprehensive biography here..."
+                  className="form-entry w-full font-mono text-xs"
                 />
+                <span className="text-[10px] text-[var(--g-muted)] block">
+                  Changes made here update the About & Journey section narrative and the glimpse text on your home identity card.
+                </span>
               </div>
             </div>
 
@@ -866,7 +896,7 @@ export default function Admin() {
                   <div className="truncate">
                     <span className="text-[var(--g-neon-flash)] font-bold block">{soc.platform}</span>
                     <span className="text-white text-[11px] block">{soc.handle}</span>
-                    <a href={soc.url} target="_blank" rel="noreferrer" className="text-[var(--g-muted)] text-[10px] truncate block hover:underline">
+                    <a href={soc.url} target="_blank" rel="noopener noreferrer" className="text-[var(--g-muted)] text-[10px] truncate block hover:underline">
                       {soc.url}
                     </a>
                   </div>
@@ -1146,7 +1176,118 @@ export default function Admin() {
       )}
 
       {/* =========================================================================
-          TAB 5: TECHNICAL STACK / 25-SKILL ARMORY
+          TAB 5: FEATURED VIDEOS (YOUTUBE EMBEDS SHOWCASE)
+          ========================================================================= */}
+      {activeTab === 'videos' && (
+        <form onSubmit={handleSaveVideos} className="space-y-6">
+          <div className="p-6 sm:p-8 rounded-lg bg-[var(--g-frame)] border border-[var(--g-border-solid)] space-y-6">
+            <div className="border-b border-[var(--g-border)] pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <span className="unit-badge-tag text-[9px]">VIDEO SHOWCASE CMS</span>
+                <h2 className="font-display text-2xl font-black text-white uppercase mt-1">
+                  Featured YouTube Videos
+                </h2>
+                <p className="text-xs text-[var(--g-muted)] font-mono mt-1">
+                  Copy and paste 2 or 3 YouTube video links below. They will be displayed directly below the Explore Directory & Portals and Social Networks section on the home page with no extra labels.
+                </p>
+              </div>
+              <button type="submit" className="btn-green-glass btn-highlight text-xs py-2 px-5 shrink-0">
+                SAVE VIDEOS
+              </button>
+            </div>
+
+            <div className="space-y-4 font-mono text-xs">
+              {videosDraft.map((videoUrl, idx) => {
+                const embedUrl = getYoutubeEmbedUrl(videoUrl);
+                return (
+                  <div key={idx} className="p-4 rounded-lg bg-[var(--g-black)] border border-[var(--g-border)] space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[var(--g-emerald)] uppercase font-bold text-xs">
+                        YouTube Video #{idx + 1} Link
+                      </label>
+                      <div className="flex items-center gap-2">
+                        {embedUrl ? (
+                          <span className="text-[10px] text-[var(--g-neon-flash)] font-mono">
+                            ✓ READY TO PLAY
+                          </span>
+                        ) : videoUrl.trim() ? (
+                          <span className="text-[10px] text-red-400 font-mono">
+                            ✕ UNRECOGNIZED LINK
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-[var(--g-muted)] font-mono">
+                            EMPTY
+                          </span>
+                        )}
+                        {videosDraft.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const copy = videosDraft.filter((_, i) => i !== idx);
+                              setVideosDraft(copy);
+                            }}
+                            className="text-red-400 hover:text-white text-[10px] px-2 py-0.5 rounded bg-red-950/40 border border-red-900/60"
+                          >
+                            REMOVE
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <input
+                      type="text"
+                      placeholder="e.g. https://www.youtube.com/watch?v=ScMzIvxBSi4 or https://youtu.be/..."
+                      value={videoUrl}
+                      onChange={(e) => {
+                        const copy = [...videosDraft];
+                        copy[idx] = e.target.value;
+                        setVideosDraft(copy);
+                      }}
+                      className="form-entry w-full"
+                    />
+
+                    {embedUrl && (
+                      <div className="pt-2">
+                        <span className="text-[10px] text-[var(--g-muted)] block mb-1.5 uppercase font-mono">
+                          Video Player Preview:
+                        </span>
+                        <div className="max-w-md aspect-video rounded-lg overflow-hidden border border-[var(--g-border-solid)] bg-black shadow-lg">
+                          <iframe
+                            src={embedUrl}
+                            title={`Preview ${idx + 1}`}
+                            className="w-full h-full border-0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              <div className="flex flex-wrap items-center gap-3 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setVideosDraft([...videosDraft, ''])}
+                  className="btn-green-glass text-xs py-2 px-4 border border-white/10 text-neutral-300 hover:text-white"
+                >
+                  + ADD ANOTHER VIDEO LINK
+                </button>
+                <button
+                  type="submit"
+                  className="btn-green-glass btn-highlight py-2 px-6 font-bold"
+                >
+                  ✓ SAVE FEATURED VIDEOS
+                </button>
+              </div>
+            </div>
+          </div>
+        </form>
+      )}
+
+      {/* =========================================================================
+          TAB 6: TECHNICAL STACK / 25-SKILL ARMORY
           ========================================================================= */}
       {activeTab === 'skills' && (
         <div className="space-y-6">
@@ -1311,7 +1452,7 @@ export default function Admin() {
       )}
 
       {/* =========================================================================
-          TAB 7: HEADER, FOOTER & PASSCODE TELEMETRY
+          TAB 8: HEADER, FOOTER & PASSCODE TELEMETRY
           ========================================================================= */}
       {activeTab === 'telemetry' && (
         <div className="space-y-6">

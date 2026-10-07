@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { usePortfolio } from '../context/PortfolioContext';
 
 export default function Contact() {
-  const { profile, downloadVCard, showToast } = usePortfolio();
+  const { profile, showToast } = usePortfolio();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -23,13 +23,6 @@ export default function Contact() {
     setMessage('');
   };
 
-  const copyEmail = () => {
-    navigator.clipboard
-      .writeText(profile.email)
-      .then(() => showToast(`✓ Email copied: ${profile.email}`))
-      .catch(() => showToast(`Email: ${profile.email}`));
-  };
-
   return (
     <div className="space-y-12">
       {/* PAGE HEADER */}
@@ -47,16 +40,16 @@ export default function Contact() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <div className="max-w-3xl mx-auto">
         {/* TRANSMISSION FORM */}
-        <div className="lg:col-span-7 p-8 rounded-lg bg-[var(--g-frame)] border border-[var(--g-border-solid)] space-y-6">
+        <div className="p-6 sm:p-8 rounded-lg bg-[var(--g-frame)] border border-[var(--g-border-solid)] space-y-6 shadow-xl">
           <div className="border-b border-[var(--g-border)] pb-4">
-            <span className="unit-badge-tag text-[9px]">ENCRYPTED TRANSMISSION</span>
-            <h2 className="font-display text-3xl font-black text-white uppercase mt-2">
+            <span className="unit-badge-tag text-[9px]">DIRECT TRANSMISSION</span>
+            <h2 className="font-display text-2xl sm:text-3xl font-black text-white uppercase mt-2">
               Send a Direct Message
             </h2>
-            <p className="text-xs text-[var(--g-muted)] mt-1">
-              Dispatches forward immediately to {profile.email}.
+            <p className="text-xs text-[var(--g-muted)] mt-1 font-mono">
+              Dispatches forward directly to {profile.email}.
             </p>
           </div>
 
@@ -133,77 +126,6 @@ export default function Contact() {
               </button>
             </form>
           )}
-        </div>
-
-        {/* CHANNEL TELEMETRY SIDEBAR */}
-        <div className="lg:col-span-5 space-y-5">
-          {/* CHANNEL CARD */}
-          <div className="p-6 rounded-lg bg-[var(--g-black)] border border-[var(--g-border-solid)] space-y-4">
-            <span className="unit-badge-tag text-[9px]">DIRECT CHANNELS</span>
-            
-            <div className="space-y-3 font-mono text-xs">
-              <div className="p-3 rounded bg-[var(--g-frame)] border border-[var(--g-border)] flex items-center justify-between">
-                <div>
-                  <span className="text-[10px] text-[var(--g-muted)] block uppercase">PRIMARY INBOX</span>
-                  <span className="text-white font-bold">{profile.email}</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={copyEmail}
-                  className="px-2.5 py-1 rounded bg-[rgba(255,122,0,0.18)] text-[var(--g-emerald)] hover:bg-[var(--g-emerald)] hover:text-black transition-colors text-[10px]"
-                >
-                  COPY
-                </button>
-              </div>
-
-              <div className="p-3 rounded bg-[var(--g-frame)] border border-[var(--g-border)] flex items-center justify-between">
-                <div>
-                  <span className="text-[10px] text-[var(--g-muted)] block uppercase">BASE LOCATION</span>
-                  <span className="text-white font-bold">{profile.location}</span>
-                </div>
-                <span className="text-[10px] text-[var(--g-neon-flash)]">UTC+5:30</span>
-              </div>
-
-              <div className="p-3 rounded bg-[var(--g-frame)] border border-[var(--g-border)]">
-                <span className="text-[10px] text-[var(--g-muted)] block uppercase">VERIFIED GITHUB</span>
-                <a
-                  href={profile.githubUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-[var(--g-emerald)] hover:underline block pt-1"
-                >
-                  {profile.githubUrl}
-                </a>
-              </div>
-
-              <div className="p-3 rounded bg-[var(--g-frame)] border border-[var(--g-border)]">
-                <span className="text-[10px] text-[var(--g-muted)] block uppercase">LINKEDIN NETWORK</span>
-                <a
-                  href={profile.linkedinUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-[var(--g-emerald)] hover:underline block pt-1"
-                >
-                  {profile.linkedinUrl}
-                </a>
-              </div>
-            </div>
-          </div>
-
-          {/* V-CARD FAST ACCESS */}
-          <div className="p-6 rounded-lg bg-[var(--g-frame)] border border-[var(--g-border-solid)] space-y-4">
-            <span className="unit-badge-tag text-[9px]">MOBILE VIRTUAL CARD</span>
-            <p className="text-xs text-[var(--g-muted)] leading-relaxed">
-              Download the standardized electronic business card (.vcf) formatted for iOS, Android, and Outlook contact books.
-            </p>
-            <button
-              type="button"
-              onClick={downloadVCard}
-              className="btn-green-glass btn-highlight w-full py-2.5 text-xs text-center font-bold"
-            >
-              ⬇ DOWNLOAD DIPANJAN_BAIDYA.VCF
-            </button>
-          </div>
         </div>
       </div>
     </div>

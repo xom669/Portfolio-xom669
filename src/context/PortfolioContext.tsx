@@ -16,7 +16,7 @@ const DEFAULT_PROFILE: ProfileData = {
   headline: 'Creative Web Developer & Digital Artist',
   location: 'Kolkata, West Bengal, India',
   bio: '19-year-old creative developer and digital artist based in Kolkata, West Bengal. Fueled by modern TypeScript, Adobe Creative Suite, and custom Linux distributions, I bridge the gap between bespoke visual identity, brutalist interfaces, and zero-bloat systems.',
-  email: 'dipanjanbaidya2007@gmail.com',
+  email: 'dipanjan@xom669.in',
   phone: '+91 98765 43210',
   webHub: 'xom669.in',
   githubUrl: 'https://github.com/dipanjanbaidya2007',
@@ -282,6 +282,32 @@ const DEFAULT_FOOTER_CONFIG: FooterConfig = {
   year: '2026'
 };
 
+export const DEFAULT_YOUTUBE_VIDEOS: string[] = [
+  'https://www.youtube.com/watch?v=ScMzIvxBSi4',
+  'https://www.youtube.com/watch?v=jfKfPfyJRdk'
+];
+
+export function extractYoutubeId(url: string): string | null {
+  if (!url) return null;
+  const trimmed = url.trim();
+  if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) {
+    return trimmed;
+  }
+  const shortMatch = trimmed.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
+  if (shortMatch) return shortMatch[1];
+
+  const match = trimmed.match(/(?:v=|\/embed\/|\/v\/|\/shorts\/)([a-zA-Z0-9_-]{11})/);
+  if (match) return match[1];
+
+  return null;
+}
+
+export function getYoutubeEmbedUrl(url: string): string | null {
+  const id = extractYoutubeId(url);
+  if (!id) return null;
+  return `https://www.youtube-nocookie.com/embed/${id}`;
+}
+
 interface PortfolioContextType {
   profile: ProfileData;
   projects: ProjectItem[];
@@ -291,6 +317,7 @@ interface PortfolioContextType {
   milestones: MilestoneItem[];
   headerConfig: HeaderConfig;
   footerConfig: FooterConfig;
+  youtubeVideos: string[];
   toastMessage: string | null;
   adminPasscode: string;
 
@@ -309,6 +336,7 @@ interface PortfolioContextType {
   updateMilestones: (milestones: MilestoneItem[]) => void;
   updateHeaderConfig: (config: Partial<HeaderConfig>) => void;
   updateFooterConfig: (config: Partial<FooterConfig>) => void;
+  updateYoutubeVideos: (videos: string[]) => void;
   updateAdminPasscode: (code: string) => void;
   
   resetToDefaults: () => void;
@@ -329,9 +357,13 @@ function loadStorage<T>(key: string, fallback: T): T {
 }
 
 export function PortfolioProvider({ children }: { children: ReactNode }) {
-  const [profile, setProfile] = useState<ProfileData>(() =>
-    loadStorage('xom669_profile', DEFAULT_PROFILE)
-  );
+  const [profile, setProfile] = useState<ProfileData>(() => {
+    const loaded = loadStorage('xom669_profile', DEFAULT_PROFILE);
+    if (loaded && (loaded.email === 'dipanjanbaidya2007@gmail.com' || !loaded.email)) {
+      loaded.email = 'dipanjan@xom669.in';
+    }
+    return loaded;
+  });
   const [projects, setProjects] = useState<ProjectItem[]>(() =>
     loadStorage('xom669_projects', DEFAULT_PROJECTS)
   );
@@ -357,6 +389,9 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
   });
   const [footerConfig, setFooterConfig] = useState<FooterConfig>(() =>
     loadStorage('xom669_footer_config', DEFAULT_FOOTER_CONFIG)
+  );
+  const [youtubeVideos, setYoutubeVideos] = useState<string[]>(() =>
+    loadStorage('xom669_youtube_videos', DEFAULT_YOUTUBE_VIDEOS)
   );
 
   const [adminPasscode, setAdminPasscode] = useState<string>(() => {
@@ -401,6 +436,10 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     localStorage.setItem('xom669_footer_config', JSON.stringify(footerConfig));
   }, [footerConfig]);
+
+  useEffect(() => {
+    localStorage.setItem('xom669_youtube_videos', JSON.stringify(youtubeVideos));
+  }, [youtubeVideos]);
 
   useEffect(() => {
     localStorage.setItem('xom669_admin_passcode', adminPasscode);
@@ -499,6 +538,11 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
     showToast('✓ Footer configuration updated!');
   };
 
+  const updateYoutubeVideos = (videos: string[]) => {
+    setYoutubeVideos(videos);
+    showToast('✓ Featured YouTube video showcase updated!');
+  };
+
   const resetToDefaults = () => {
     setProfile(DEFAULT_PROFILE);
     setProjects(DEFAULT_PROJECTS);
@@ -508,6 +552,7 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
     setMilestones(DEFAULT_MILESTONES);
     setHeaderConfig(DEFAULT_HEADER_CONFIG);
     setFooterConfig(DEFAULT_FOOTER_CONFIG);
+    setYoutubeVideos(DEFAULT_YOUTUBE_VIDEOS);
     setAdminPasscode('6699');
     localStorage.clear();
     showToast('✓ Reset all sections to factory default configuration.');
@@ -551,6 +596,7 @@ END:VCARD`;
         milestones,
         headerConfig,
         footerConfig,
+        youtubeVideos,
         toastMessage,
         adminPasscode,
         updateProfile,
@@ -566,6 +612,7 @@ END:VCARD`;
         updateMilestones,
         updateHeaderConfig,
         updateFooterConfig,
+        updateYoutubeVideos,
         updateAdminPasscode,
         resetToDefaults,
         showToast,

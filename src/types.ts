@@ -96,3 +96,9 @@ export interface FooterConfig {
   subText: string;
   year: string;
 }
+
+export interface VideoItem {
+  id: string;
+  url: string;
+  title?: string;
+}

@@ -86,7 +86,7 @@ export function Layout() {
         <nav className="flex gap-6 items-center uppercase font-bold text-sm">
           <a href="https://www.linkedin.com/in/dipanjanbaidya/" target="_blank" rel="noopener noreferrer" className="text-on-background hover:line-through hover:text-secondary transition-colors">LinkedIn</a>
           <a href="https://instagram.com/xom669" target="_blank" rel="noopener noreferrer" className="text-on-background hover:line-through hover:text-secondary transition-colors">Instagram</a>
-          <a href="mailto:dipanjanbaidya2007@gmail.com" className="text-on-background hover:line-through hover:text-secondary transition-colors">Email</a>
+          <a href="mailto:dipanjan@xom669.in" className="text-on-background hover:line-through hover:text-secondary transition-colors">Email</a>
         </nav>
         <div className="text-on-background uppercase font-bold text-xs">
           © 2024 DIPANJAN. MADE WITH INK & CHAOS.

@@ -37,7 +37,7 @@ export function Footer() {
           </a>
           <span className="text-white/20">•</span>
           <a
-            href={`mailto:${profile.email || 'dipanjanbaidya2007@gmail.com'}`}
+            href={`mailto:${profile.email || 'dipanjan@xom669.in'}`}
             className="text-[var(--g-offwhite)] hover:text-[var(--g-neon-flash)] transition-colors"
           >
             Email

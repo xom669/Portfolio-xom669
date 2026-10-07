@@ -42,7 +42,7 @@
     line-height: 1.5;
     overflow-x: hidden;
     min-height: 100vh;
-    padding-top: 60px;
+    padding-top: 104px;
     padding-bottom: 46px;
     position: relative;
   }
@@ -779,6 +779,12 @@
   .two-sided-layout {
     grid-template-columns: 1fr;
   }
+  .left-side-control-panel {
+    position: static;
+    top: auto;
+    box-shadow: none;
+    margin-bottom: 20px;
+  }
 }
 
 .left-side-control-panel {
@@ -1145,7 +1151,7 @@
    ========================================================================== */
 @media (max-width: 640px) {
   body {
-    padding-top: 112px;
+    padding-top: 108px;
     padding-bottom: 78px;
   }
 

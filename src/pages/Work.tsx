@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { usePortfolio } from '../context/PortfolioContext';
 
 export default function Work() {
@@ -107,17 +106,6 @@ export default function Work() {
             />
           </div>
 
-          <div className="p-3.5 rounded bg-[var(--g-void)] border border-[var(--g-border)] font-mono text-xs text-[var(--g-muted)] mb-5">
-            <span className="text-[var(--g-neon-flash)] block font-bold mb-1">PROMPT FOR NEW PROJECTS:</span>
-            To add or reorder items in this catalog, open the dedicated Studio Backend.
-          </div>
-
-          <Link
-            to="/admin"
-            className="btn-quick-add text-center flex items-center justify-center gap-2 text-decoration-none"
-          >
-            <span>⚙ MANAGE IN BACKEND</span>
-          </Link>
         </div>
 
         {/* RIGHT SCROLLABLE DECK */}

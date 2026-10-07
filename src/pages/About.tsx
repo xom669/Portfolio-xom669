@@ -31,15 +31,18 @@ export default function About() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 p-8 rounded-lg bg-[var(--g-frame)] border border-[var(--g-border-solid)] space-y-5">
           <span className="unit-badge-tag text-[10px]">THE CREATIVE ENGINE</span>
-          <h2 className="font-display text-3xl font-black text-white uppercase">
-            Aesthetic Brutalism meets Zero-Bloat Systems
-          </h2>
-          <p className="text-sm text-[var(--g-offwhite)] leading-relaxed">
-            I am a 19-year-old creative developer and visual artist based out of <strong>{profile.location}</strong>. I operate at the intersection of aesthetic graphic design and rigorous low-latency computer systems.
-          </p>
-          <p className="text-sm text-[var(--g-muted)] leading-relaxed">
-            From compiling tailored Alpine Linux live distributions that boot in under 10 seconds to crafting high-gloss corporate identity brochures for premier real estate developments in Gurgaon, my philosophy is focused on zero fluff, high signal-to-noise ratio, and tactile kinetic typography.
-          </p>
+          <div className="text-sm text-[var(--g-offwhite)] leading-relaxed whitespace-pre-line space-y-3 font-sans">
+            {profile.bio || (
+              <>
+                <p>
+                  I am a 19-year-old creative developer and visual artist based out of <strong>{profile.location}</strong>. I operate at the intersection of aesthetic graphic design and rigorous low-latency computer systems.
+                </p>
+                <p className="text-[var(--g-muted)]">
+                  From compiling tailored Alpine Linux live distributions that boot in under 10 seconds to crafting high-gloss corporate identity brochures for premier real estate developments in Gurgaon, my philosophy is focused on zero fluff, high signal-to-noise ratio, and tactile kinetic typography.
+                </p>
+              </>
+            )}
+          </div>
           <div className="pt-4 border-t border-[var(--g-border)] flex flex-wrap gap-4 font-mono text-xs">
             <div>
               <span className="text-[var(--g-muted)] block text-[10px] uppercase">Base Station</span>
@@ -75,7 +78,7 @@ export default function About() {
               </div>
               <div>
                 <span className="text-[var(--g-muted)] block text-[10px] uppercase">PRIMARY GITHUB:</span>
-                <a href={profile.githubUrl} target="_blank" rel="noreferrer" className="text-[var(--g-emerald)] underline">
+                <a href={profile.githubUrl} target="_blank" rel="noopener noreferrer" className="text-[var(--g-emerald)] underline">
                   {profile.githubUrl.replace('https://', '')}
                 </a>
               </div>

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { usePortfolio } from '../context/PortfolioContext';
+import { usePortfolio, getYoutubeEmbedUrl } from '../context/PortfolioContext';
 
 function getPlatformIcon(platform: string) {
   const p = platform.toLowerCase();
@@ -54,7 +54,7 @@ function getPlatformIcon(platform: string) {
 }
 
 export default function Home() {
-  const { profile, headerConfig, showToast } = usePortfolio();
+  const { profile, headerConfig, youtubeVideos, showToast } = usePortfolio();
 
   const chassisRef = useRef<HTMLDivElement | null>(null);
   const flipperRef = useRef<HTMLDivElement | null>(null);
@@ -271,7 +271,7 @@ export default function Home() {
                       <a
                         href={profile.githubUrl}
                         target="_blank"
-                        rel="noreferrer"
+                        rel="noopener noreferrer"
                         className="v truncate max-w-[200px] sm:max-w-none text-[var(--g-neon-flash)] hover:underline"
                       >
                         {profile.githubUrl.replace('https://', '')}
@@ -282,7 +282,7 @@ export default function Home() {
                       <a
                         href={profile.linkedinUrl}
                         target="_blank"
-                        rel="noreferrer"
+                        rel="noopener noreferrer"
                         className="v truncate max-w-[200px] sm:max-w-none text-[var(--g-neon-flash)] hover:underline"
                       >
                         {profile.linkedinUrl.replace('https://', '')}
@@ -293,7 +293,7 @@ export default function Home() {
                       <a
                         href={profile.instagramUrl || 'https://instagram.com'}
                         target="_blank"
-                        rel="noreferrer"
+                        rel="noopener noreferrer"
                         className="v text-[var(--g-neon-flash)] hover:underline"
                       >
                         {profile.instagramHandle || '@dipanjan.baidya'}
@@ -304,7 +304,7 @@ export default function Home() {
                       <a
                         href={profile.twitterUrl || 'https://twitter.com'}
                         target="_blank"
-                        rel="noreferrer"
+                        rel="noopener noreferrer"
                         className="v text-[var(--g-neon-flash)] hover:underline"
                       >
                         {profile.twitterHandle || '@xom669'}
@@ -447,6 +447,40 @@ export default function Home() {
           ))}
         </div>
       </section>
+
+      {/* YOUTUBE VIDEO SHOWCASE (CMS CONTROLLED, ZERO TEXT LABELS AS REQUESTED) */}
+      {youtubeVideos && youtubeVideos.length > 0 && youtubeVideos.some((v) => getYoutubeEmbedUrl(v)) && (
+        <section className="pt-2">
+          <div
+            className={`grid grid-cols-1 ${
+              youtubeVideos.filter((v) => getYoutubeEmbedUrl(v)).length === 1
+                ? 'max-w-2xl mx-auto'
+                : youtubeVideos.filter((v) => getYoutubeEmbedUrl(v)).length === 2
+                ? 'md:grid-cols-2'
+                : 'md:grid-cols-2 lg:grid-cols-3'
+            } gap-4`}
+          >
+            {youtubeVideos.map((videoUrl, idx) => {
+              const embedUrl = getYoutubeEmbedUrl(videoUrl);
+              if (!embedUrl) return null;
+              return (
+                <div
+                  key={idx}
+                  className="relative aspect-video rounded-xl overflow-hidden bg-black/80 border border-[var(--g-border-solid)] shadow-xl hover:border-[var(--g-emerald)] transition-all group"
+                >
+                  <iframe
+                    src={embedUrl}
+                    title={`Video ${idx + 1}`}
+                    className="w-full h-full border-0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* QR SCANNER MODAL */}
       <div className={`rb-modal-shield ${isQRModalOpen ? 'open' : ''}`}>
