@@ -105,9 +105,14 @@ export default function Home() {
     const next = !isFlipped;
     setIsFlipped(next);
     if (flipperRef.current) {
+      const isMobile = window.innerWidth < 640;
       flipperRef.current.style.transform = next
-        ? 'perspective(1400px) rotateY(180deg)'
-        : 'perspective(1400px) rotateY(0deg)';
+        ? isMobile
+          ? 'rotateY(180deg)'
+          : 'perspective(1400px) rotateY(180deg)'
+        : isMobile
+          ? 'rotateY(0deg)'
+          : 'perspective(1400px) rotateY(0deg)';
     }
   };
 
@@ -229,17 +234,17 @@ export default function Home() {
                   {/* ACTION BUTTONS (Clean, removed vCard download button) */}
                   <div className="card-action-btns-row">
                     <button type="button" className="btn-green-glass btn-highlight flex-1" onClick={copyContact}>
-                      📋 COPY EMAIL
+                      📋 <span className="hidden xs:inline">COPY </span>EMAIL
                     </button>
                     <button
                       type="button"
                       className="btn-green-glass flex-1"
                       onClick={() => setIsQRModalOpen(true)}
                     >
-                      📱 SCAN QR
+                      📱 <span className="hidden xs:inline">SCAN </span>QR
                     </button>
                     <button type="button" className="btn-green-glass flex-1" onClick={togglePassFlip}>
-                      ↻ FLIP CARD
+                      ↻ FLIP<span className="hidden xs:inline"> CARD</span>
                     </button>
                   </div>
                 </div>
@@ -476,13 +481,14 @@ export default function Home() {
                   key={idx}
                   className="relative aspect-video rounded-xl overflow-hidden bg-black/80 border border-[var(--g-border-solid)] shadow-xl hover:border-[var(--g-emerald)] transition-all group"
                 >
-                  <iframe
-                    src={embedUrl}
-                    title={`Video ${idx + 1}`}
-                    className="w-full h-full border-0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    allowFullScreen
-                  />
+                    <iframe
+                      src={embedUrl}
+                      title={`Featured Video ${idx + 1}`}
+                      className="w-full h-full border-0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allowFullScreen
+                      loading="eager"
+                    />
                 </div>
               );
             })}

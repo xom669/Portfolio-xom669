@@ -1495,7 +1495,7 @@ export default function Admin() {
 
             <div className="space-y-4 font-mono text-xs">
               {videosDraft.map((videoUrl, idx) => {
-                const embedUrl = getYoutubeEmbedUrl(videoUrl);
+                const embedUrl = getYoutubeEmbedUrl(videoUrl, false);
                 return (
                   <div key={idx} className="p-4 rounded-lg bg-[var(--g-black)] border border-[var(--g-border)] space-y-3">
                     <div className="flex items-center justify-between">

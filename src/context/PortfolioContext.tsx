@@ -294,9 +294,12 @@ export function extractYoutubeId(url: string): string | null {
   return null;
 }
 
-export function getYoutubeEmbedUrl(url: string): string | null {
+export function getYoutubeEmbedUrl(url: string, autoPlay: boolean = true): string | null {
   const id = extractYoutubeId(url);
   if (!id) return null;
+  if (autoPlay) {
+    return `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=1&loop=1&playlist=${id}&playsinline=1&controls=1&rel=0&modestbranding=1&enablejsapi=1`;
+  }
   return `https://www.youtube-nocookie.com/embed/${id}`;
 }
 
