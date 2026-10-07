@@ -48,6 +48,7 @@ export default function WorkDetail() {
           .select('*')
           .eq('id', id)
           .eq('status', 'published')
+          .neq('category', '__portfolio_cloud_sync__')
           .single();
         
         if (data) {

@@ -1,13 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+export const SUPABASE_URL =
+  import.meta.env.VITE_SUPABASE_URL || 'https://uvfttvbsbakwbvtnlzsd.supabase.co';
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('Supabase credentials missing. CMS features will not work until VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set in the Secrets panel.');
-}
+export const SUPABASE_ANON_KEY =
+  import.meta.env.VITE_SUPABASE_ANON_KEY ||
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV2ZnR0dmJzYmFrd2J2dG5senNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTYyNDIsImV4cCI6MjA5NDM3MjI0Mn0.ErvPWr_87ulBDNsso6rZGzXYSVnimcgF_qG8FuYevOw';
 
-export const supabase = createClient(
-  supabaseUrl || 'https://placeholder.supabase.co',
-  supabaseAnonKey || 'placeholder'
-);
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);

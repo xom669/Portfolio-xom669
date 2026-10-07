@@ -443,7 +443,7 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
         const cloud = await fetchFromCloud();
         if (cloud && isMounted) {
           if (cloud.profile) {
-            setProfile(cloud.profile);
+            setProfile((prev) => ({ ...prev, ...cloud.profile }));
             if (Array.isArray(cloud.projects)) setProjects(cloud.projects);
             if (Array.isArray(cloud.materials)) setMaterials(cloud.materials);
             if (Array.isArray(cloud.skills)) setSkills(cloud.skills);
@@ -492,7 +492,7 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
       if (document.visibilityState === 'visible') {
         fetchFromCloud().then((cloud) => {
           if (cloud?.profile && isMounted) {
-            setProfile(cloud.profile);
+            setProfile((prev) => ({ ...prev, ...cloud.profile }));
             if (Array.isArray(cloud.projects)) setProjects(cloud.projects);
             if (Array.isArray(cloud.materials)) setMaterials(cloud.materials);
             if (Array.isArray(cloud.skills)) setSkills(cloud.skills);
@@ -554,7 +554,7 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
     try {
       const cloud = await fetchFromCloud();
       if (cloud) {
-        if (cloud.profile) setProfile(cloud.profile);
+        if (cloud.profile) setProfile((prev) => ({ ...prev, ...cloud.profile }));
         if (Array.isArray(cloud.projects)) setProjects(cloud.projects);
         if (Array.isArray(cloud.materials)) setMaterials(cloud.materials);
         if (Array.isArray(cloud.skills)) setSkills(cloud.skills);

@@ -2,6 +2,7 @@ import { useState, type FormEvent, type ChangeEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { usePortfolio, getYoutubeEmbedUrl } from '../context/PortfolioContext';
 import { compressImage } from '../lib/imageCompressor';
+import { SUPABASE_SETUP_SQL } from '../lib/cloudSync';
 import type { ProjectItem, MaterialItem, JourneyItem, SocialLink } from '../types';
 
 export default function Admin() {
@@ -458,12 +459,12 @@ export default function Admin() {
             />
             <span className="text-neutral-300 font-bold">
               {cloudSyncStatus === 'synced'
-                ? 'SYNCED'
+                ? 'SUPABASE SYNCED'
                 : cloudSyncStatus === 'syncing'
                 ? 'SYNCING...'
                 : cloudSyncStatus === 'error'
                 ? 'OFFLINE'
-                : 'CLOUD'}
+                : 'SUPABASE'}
             </span>
             {lastSyncedTime && (
               <span className="text-[10px] text-[var(--g-muted)] hidden sm:inline">
@@ -1992,6 +1993,45 @@ export default function Admin() {
               </button>
             </div>
           </form>
+
+          {/* Supabase Cloud Database Telemetry & Setup Card */}
+          <div className="p-6 sm:p-8 rounded-lg bg-[var(--g-frame)] border border-[var(--g-border-solid)] space-y-4 font-mono text-xs">
+            <div className="border-b border-[var(--g-border)] pb-2 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-[var(--g-emerald)]">⚡</span>
+                <h3 className="font-display text-xl font-bold text-white uppercase">
+                  Supabase Cloud Database
+                </h3>
+              </div>
+              <span className="px-2 py-0.5 rounded text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800 font-bold">
+                CONNECTED & ACTIVE
+              </span>
+            </div>
+            <p className="text-[var(--g-muted)] leading-relaxed">
+              Connected to your Supabase instance (<code className="text-white">uvfttvbsbakwbvtnlzsd.supabase.co</code>). All edits to your bio, projects, materials, journey, skills, and videos automatically sync in real-time between your PC and mobile devices.
+            </p>
+            <div className="flex flex-wrap gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => syncWithCloud()}
+                className="btn-green-glass btn-highlight py-2 px-4 font-bold"
+              >
+                ↻ FORCE SYNC WITH SUPABASE
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(SUPABASE_SETUP_SQL).then(() => {
+                    showToast('✓ Supabase setup SQL copied to clipboard!');
+                  }).catch(() => {});
+                }}
+                className="btn-green-glass py-2 px-4 font-bold border-[var(--g-border)] text-neutral-300 hover:text-white"
+                title="Copy optional SQL to create clean portfolio_config table in Supabase SQL editor"
+              >
+                📋 COPY OPTIONAL SQL SETUP
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
