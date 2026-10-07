@@ -35,7 +35,9 @@ export default function Admin() {
     showToast,
     cloudSyncStatus,
     lastSyncedTime,
-    syncWithCloud
+    syncWithCloud,
+    exportAllData,
+    importAllData
   } = usePortfolio();
 
   // Password Gate State
@@ -54,6 +56,11 @@ export default function Admin() {
   // Project Deletion Gate Modal State (Requires tick-box confirmation)
   const [projectToDelete, setProjectToDelete] = useState<ProjectItem | null>(null);
   const [isDeleteConfirmedChecked, setIsDeleteConfirmedChecked] = useState(false);
+
+  // Sync / Export / Import Modal State
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importJsonText, setImportJsonText] = useState('');
 
   // Reset Confirmation Password Gate State
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
@@ -481,6 +488,31 @@ export default function Admin() {
           </Link>
           <button
             type="button"
+            onClick={() => {
+              const code = exportAllData();
+              navigator.clipboard.writeText(code).then(() => {
+                showToast('✓ Full CMS data copied to clipboard!');
+              }).catch(() => {});
+              setIsExportModalOpen(true);
+            }}
+            className="btn-green-glass text-xs py-2 px-3 border-[var(--g-border)] text-neutral-300 hover:text-white"
+            title="Export full portfolio snapshot as code"
+          >
+            📋 EXPORT
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setImportJsonText('');
+              setIsImportModalOpen(true);
+            }}
+            className="btn-green-glass text-xs py-2 px-3 border-[var(--g-border)] text-neutral-300 hover:text-white"
+            title="Import portfolio data from another device"
+          >
+            📥 IMPORT
+          </button>
+          <button
+            type="button"
             onClick={handleLock}
             className="btn-green-glass text-xs py-2 px-3 border-[var(--g-border)] text-neutral-300 hover:text-white"
             title="Lock session"
@@ -601,6 +633,98 @@ export default function Admin() {
                 }`}
               >
                 DELETE PROJECT
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* EXPORT DATA MODAL */}
+      {isExportModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="w-full max-w-lg rounded-xl bg-[var(--g-frame)] border border-[var(--g-border-solid)] p-6 space-y-4 shadow-2xl font-mono text-xs">
+            <div className="flex items-center justify-between border-b border-[var(--g-border)] pb-2">
+              <div className="flex items-center gap-2 text-[var(--g-neon-flash)]">
+                <span className="text-xl">📋</span>
+                <h3 className="font-display text-lg font-bold uppercase text-white">Export Portfolio Sync Code</h3>
+              </div>
+              <button type="button" onClick={() => setIsExportModalOpen(false)} className="text-neutral-400 hover:text-white">✕</button>
+            </div>
+            <p className="text-[var(--g-muted)]">
+              This code contains your complete portfolio configuration (profile, avatar, banner, links, projects, and journey). You can paste this on your phone or any other device to sync immediately:
+            </p>
+            <textarea
+              readOnly
+              rows={8}
+              value={exportAllData()}
+              className="form-entry font-mono text-[11px] select-all cursor-text"
+              onClick={(e) => (e.target as HTMLTextAreaElement).select()}
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(exportAllData()).then(() => {
+                    showToast('✓ Copied to clipboard!');
+                  });
+                }}
+                className="btn-green-glass btn-highlight py-2 px-4 font-bold"
+              >
+                COPY TO CLIPBOARD
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsExportModalOpen(false)}
+                className="btn-green-glass py-2 px-3 text-neutral-300"
+              >
+                CLOSE
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* IMPORT DATA MODAL */}
+      {isImportModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="w-full max-w-lg rounded-xl bg-[var(--g-frame)] border border-[var(--g-emerald)] p-6 space-y-4 shadow-2xl font-mono text-xs">
+            <div className="flex items-center justify-between border-b border-[var(--g-border)] pb-2">
+              <div className="flex items-center gap-2 text-[var(--g-emerald)]">
+                <span className="text-xl">📥</span>
+                <h3 className="font-display text-lg font-bold uppercase text-white">Import Portfolio Data</h3>
+              </div>
+              <button type="button" onClick={() => setIsImportModalOpen(false)} className="text-neutral-400 hover:text-white">✕</button>
+            </div>
+            <p className="text-[var(--g-muted)]">
+              Paste the exported sync code from your computer or phone below to immediately apply all changes:
+            </p>
+            <textarea
+              rows={8}
+              placeholder="Paste exported portfolio JSON here..."
+              value={importJsonText}
+              onChange={(e) => setImportJsonText(e.target.value)}
+              className="form-entry font-mono text-[11px]"
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setIsImportModalOpen(false)}
+                className="btn-green-glass py-2 px-3 text-neutral-300"
+              >
+                CANCEL
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (importAllData(importJsonText)) {
+                    setIsImportModalOpen(false);
+                    setImportJsonText('');
+                    window.location.reload();
+                  }
+                }}
+                className="btn-green-glass btn-highlight py-2 px-4 font-bold"
+              >
+                APPLY DATA TO SITE
               </button>
             </div>
           </div>

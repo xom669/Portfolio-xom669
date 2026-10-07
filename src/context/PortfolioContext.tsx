@@ -342,6 +342,8 @@ interface PortfolioContextType {
   resetToDefaults: () => void;
   showToast: (message: string) => void;
   downloadVCard: () => void;
+  exportAllData: () => string;
+  importAllData: (dataJson: string) => boolean;
 }
 
 const PortfolioContext = createContext<PortfolioContextType | null>(null);
@@ -800,6 +802,46 @@ END:VCARD`;
     showToast('✓ Contact V-Card downloaded successfully!');
   };
 
+  const exportAllData = (): string => {
+    const payload = {
+      profile,
+      projects,
+      materials,
+      skills,
+      journey,
+      milestones,
+      headerConfig,
+      footerConfig,
+      youtubeVideos,
+      exportedAt: Date.now()
+    };
+    return JSON.stringify(payload, null, 2);
+  };
+
+  const importAllData = (dataJson: string): boolean => {
+    try {
+      const data = JSON.parse(dataJson);
+      if (data && typeof data === 'object') {
+        if (data.profile) setProfile(data.profile);
+        if (Array.isArray(data.projects)) setProjects(data.projects);
+        if (Array.isArray(data.materials)) setMaterials(data.materials);
+        if (Array.isArray(data.skills)) setSkills(data.skills);
+        if (Array.isArray(data.journey)) setJourney(data.journey);
+        if (Array.isArray(data.milestones)) setMilestones(data.milestones);
+        if (data.headerConfig) setHeaderConfig(data.headerConfig);
+        if (data.footerConfig) setFooterConfig(data.footerConfig);
+        if (Array.isArray(data.youtubeVideos)) setYoutubeVideos(data.youtubeVideos);
+        showToast('✓ All portfolio data successfully imported and synced!');
+        return true;
+      }
+      showToast('✕ Invalid portfolio data structure.');
+      return false;
+    } catch {
+      showToast('✕ Error parsing JSON data.');
+      return false;
+    }
+  };
+
   return (
     <PortfolioContext.Provider
       value={{
@@ -838,7 +880,9 @@ END:VCARD`;
         updateAdminPasscode,
         resetToDefaults,
         showToast,
-        downloadVCard
+        downloadVCard,
+        exportAllData,
+        importAllData
       }}
     >
       {children}
