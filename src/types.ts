@@ -81,9 +81,14 @@ export interface MilestoneItem {
 }
 
 export interface HeaderConfig {
-  tickerText: string;
+  showHeader?: boolean;
+  showTicker?: boolean;
   brandTitle: string;
   brandBadge: string;
+  tickerText: string;
+  showCard?: boolean;
+  customHeroText?: string;
+  cardSpacing?: 'flush' | 'compact' | 'normal';
 }
 
 export interface FooterConfig {

@@ -74,7 +74,14 @@ export default function Admin() {
   ]);
 
   // Local Header/Footer Draft
-  const [headerDraft, setHeaderDraft] = useState({ ...headerConfig });
+  const [headerDraft, setHeaderDraft] = useState({
+    showHeader: true,
+    showTicker: false,
+    showCard: true,
+    customHeroText: '',
+    cardSpacing: 'flush' as 'flush' | 'compact' | 'normal',
+    ...headerConfig
+  });
   const [footerDraft, setFooterDraft] = useState({ ...footerConfig });
 
   // New Social State
@@ -1238,20 +1245,89 @@ export default function Admin() {
               </h2>
             </div>
 
-            <div className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-[var(--g-emerald)] uppercase font-bold block">
-                  Running Marquee Ticker Text (Infinite loop at top)
-                </label>
-                <textarea
-                  rows={2}
-                  value={headerDraft.tickerText}
-                  onChange={(e) => setHeaderDraft({ ...headerDraft, tickerText: e.target.value })}
-                  className="form-entry font-mono"
-                  required
-                />
+            <div className="space-y-5">
+              {/* VISIBILITY TOGGLES */}
+              <div className="p-4 rounded-lg bg-[rgba(255,255,255,0.03)] border border-[var(--g-border)] space-y-3">
+                <span className="text-[var(--g-neon-flash)] font-bold uppercase tracking-wider block">
+                  LAYOUT & VISIBILITY TOGGLES
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <label className="flex items-center gap-2.5 p-2 rounded bg-[var(--g-black)] border border-[var(--g-border)] cursor-pointer hover:border-[var(--g-emerald)] transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={headerDraft.showHeader !== false}
+                      onChange={(e) => setHeaderDraft({ ...headerDraft, showHeader: e.target.checked })}
+                      className="accent-[var(--g-emerald)] w-4 h-4 cursor-pointer"
+                    />
+                    <span className="text-white font-bold">Top Header Nav</span>
+                  </label>
+
+                  <label className="flex items-center gap-2.5 p-2 rounded bg-[var(--g-black)] border border-[var(--g-border)] cursor-pointer hover:border-[var(--g-emerald)] transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={!!headerDraft.showTicker}
+                      onChange={(e) => setHeaderDraft({ ...headerDraft, showTicker: e.target.checked })}
+                      className="accent-[var(--g-emerald)] w-4 h-4 cursor-pointer"
+                    />
+                    <span className="text-white font-bold">Running Ticker</span>
+                  </label>
+
+                  <label className="flex items-center gap-2.5 p-2 rounded bg-[var(--g-black)] border border-[var(--g-border)] cursor-pointer hover:border-[var(--g-emerald)] transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={headerDraft.showCard !== false}
+                      onChange={(e) => setHeaderDraft({ ...headerDraft, showCard: e.target.checked })}
+                      className="accent-[var(--g-emerald)] w-4 h-4 cursor-pointer"
+                    />
+                    <span className="text-white font-bold">Virtual ID Card</span>
+                  </label>
+                </div>
               </div>
 
+              {/* CARD POSITIONING & CUSTOM TEXT */}
+              <div className="p-4 rounded-lg bg-[rgba(255,255,255,0.03)] border border-[var(--g-border)] space-y-3">
+                <span className="text-[var(--g-emerald)] font-bold uppercase tracking-wider block">
+                  IDENTITY CARD CONTROLS & HERO TEXT
+                </span>
+                
+                <div className="space-y-1.5">
+                  <label className="text-neutral-300 block">
+                    Card Vertical Spacing (Move card upwards)
+                  </label>
+                  <div className="flex gap-2">
+                    {(['flush', 'compact', 'normal'] as const).map((mode) => (
+                      <button
+                        key={mode}
+                        type="button"
+                        onClick={() => setHeaderDraft({ ...headerDraft, cardSpacing: mode })}
+                        className={`py-1.5 px-3 rounded text-xs font-mono font-bold uppercase transition-all ${
+                          (headerDraft.cardSpacing || 'flush') === mode
+                            ? 'bg-[var(--g-emerald)] text-black shadow-md'
+                            : 'bg-[var(--g-black)] text-neutral-300 border border-[var(--g-border)] hover:border-white'
+                        }`}
+                      >
+                        {mode === 'flush' ? '↑ Top Flush' : mode === 'compact' ? 'Compact' : 'Standard'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-1.5 pt-2">
+                  <label className="text-neutral-300 block">
+                    Custom Intro / Headline Text (Displayed above card or at top of home)
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={headerDraft.customHeroText || ''}
+                    onChange={(e) => setHeaderDraft({ ...headerDraft, customHeroText: e.target.value })}
+                    placeholder="e.g. Welcome to my creative portfolio and systems repository..."
+                    className="form-entry font-mono"
+                  />
+                  <span className="text-[10px] text-[var(--g-muted)]">Leave empty to show card directly at top with no headline text.</span>
+                </div>
+              </div>
+
+              {/* HEADER DETAILS */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-[var(--g-emerald)] uppercase font-bold block">
@@ -1261,6 +1337,7 @@ export default function Admin() {
                     type="text"
                     value={headerDraft.brandTitle}
                     onChange={(e) => setHeaderDraft({ ...headerDraft, brandTitle: e.target.value })}
+                    placeholder="Identity Card / Home"
                     className="form-entry font-mono"
                     required
                   />
@@ -1268,17 +1345,32 @@ export default function Admin() {
 
                 <div className="space-y-1.5">
                   <label className="text-[var(--g-emerald)] uppercase font-bold block">
-                    Header Brand Sub-Badge
+                    Header Brand Sub-Badge (Optional)
                   </label>
                   <input
                     type="text"
                     value={headerDraft.brandBadge}
                     onChange={(e) => setHeaderDraft({ ...headerDraft, brandBadge: e.target.value })}
+                    placeholder="XOM669 / PORTFOLIO"
+                    className="form-entry font-mono"
+                  />
+                </div>
+              </div>
+
+              {headerDraft.showTicker && (
+                <div className="space-y-1.5">
+                  <label className="text-[var(--g-emerald)] uppercase font-bold block">
+                    Running Marquee Ticker Text (Infinite loop at top)
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={headerDraft.tickerText}
+                    onChange={(e) => setHeaderDraft({ ...headerDraft, tickerText: e.target.value })}
                     className="form-entry font-mono"
                     required
                   />
                 </div>
-              </div>
+              )}
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-3 border-t border-[var(--g-border)]">
                 <div className="space-y-1.5">

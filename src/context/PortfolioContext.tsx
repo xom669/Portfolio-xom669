@@ -266,14 +266,19 @@ const DEFAULT_MILESTONES: MilestoneItem[] = [
 ];
 
 const DEFAULT_HEADER_CONFIG: HeaderConfig = {
-  tickerText: 'DIPANJAN BAIDYA • CREATIVE DEVELOPER & DIGITAL ARTIST • KOLKATA, INDIA • SYSTEMS ARCHITECTURE & ALPINE LINUX • V-CARD & PORTFOLIO HUB',
-  brandTitle: 'DIPANJAN BAIDYA',
-  brandBadge: 'PORTFOLIO'
+  showHeader: true,
+  showTicker: false,
+  brandTitle: 'Identity Card',
+  brandBadge: 'XOM669',
+  tickerText: 'DIPANJAN BAIDYA • CREATIVE DEVELOPER & DIGITAL ARTIST • KOLKATA, INDIA • SYSTEMS & DESIGN',
+  showCard: true,
+  customHeroText: '',
+  cardSpacing: 'flush'
 };
 
 const DEFAULT_FOOTER_CONFIG: FooterConfig = {
   brandmarkText: 'DIPANJAN BAIDYA',
-  subText: 'OFFICIAL PORTFOLIO & V-CARD',
+  subText: 'OFFICIAL PORTFOLIO',
   year: '2026'
 };
 
@@ -342,9 +347,10 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
   const [milestones, setMilestones] = useState<MilestoneItem[]>(() =>
     loadStorage('xom669_milestones', DEFAULT_MILESTONES)
   );
-  const [headerConfig, setHeaderConfig] = useState<HeaderConfig>(() =>
-    loadStorage('xom669_header_config', DEFAULT_HEADER_CONFIG)
-  );
+  const [headerConfig, setHeaderConfig] = useState<HeaderConfig>(() => {
+    const saved = loadStorage<Partial<HeaderConfig>>('xom669_header_config', DEFAULT_HEADER_CONFIG);
+    return { ...DEFAULT_HEADER_CONFIG, ...saved };
+  });
   const [footerConfig, setFooterConfig] = useState<FooterConfig>(() =>
     loadStorage('xom669_footer_config', DEFAULT_FOOTER_CONFIG)
   );

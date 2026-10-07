@@ -2,45 +2,50 @@ import { Link } from 'react-router-dom';
 import { usePortfolio } from '../context/PortfolioContext';
 
 export function Footer() {
-  const { footerConfig, profile, downloadVCard } = usePortfolio();
+  const { footerConfig, profile } = usePortfolio();
 
   return (
     <footer className="fixed-site-footer">
       <div className="footer-inner-content">
-        <Link
-          to="/"
-          className="footer-kinetic-brand text-decoration-none"
-          title="Return to Home Identity Card"
-        >
-          <span className="year">{footerConfig.year || '2026'}</span>
-          <span className="name">{footerConfig.brandmarkText || 'DIPANJAN BAIDYA'}</span>
-          <span style={{ color: 'var(--g-neon-flash)', fontSize: '10px' }}>
-            // {footerConfig.subText || 'OFFICIAL PORTFOLIO'}
-          </span>
-        </Link>
+        <div className="footer-kinetic-brand text-[11px] sm:text-xs">
+          <span className="year text-[var(--g-emerald)]">{footerConfig.year || '2026'}</span>
+          <span className="name text-neutral-300 font-semibold">{footerConfig.brandmarkText || 'DIPANJAN BAIDYA'}</span>
+          {footerConfig.subText && (
+            <span className="text-[10px] text-[var(--g-muted)] font-mono hidden sm:inline">
+              // {footerConfig.subText}
+            </span>
+          )}
+        </div>
 
-        <div className="footer-actions">
+        <div className="footer-actions flex items-center gap-3 sm:gap-4 text-[10px] sm:text-[11px] font-mono">
           <a
             href={profile.githubUrl || 'https://github.com/dipanjanbaidya2007'}
             target="_blank"
             rel="noopener noreferrer"
+            className="text-[var(--g-offwhite)] hover:text-[var(--g-neon-flash)] transition-colors"
           >
             GitHub
           </a>
+          <span className="text-white/20">•</span>
           <a
             href={profile.linkedinUrl || 'https://www.linkedin.com/in/dipanjanbaidya/'}
             target="_blank"
             rel="noopener noreferrer"
+            className="text-[var(--g-offwhite)] hover:text-[var(--g-neon-flash)] transition-colors"
           >
             LinkedIn
           </a>
-          <a href={`mailto:${profile.email || 'dipanjanbaidya2007@gmail.com'}`}>
-            Direct Email
+          <span className="text-white/20">•</span>
+          <a
+            href={`mailto:${profile.email || 'dipanjanbaidya2007@gmail.com'}`}
+            className="text-[var(--g-offwhite)] hover:text-[var(--g-neon-flash)] transition-colors"
+          >
+            Email
           </a>
           <Link
             to="/admin"
-            className="p-1 rounded text-[var(--g-muted)] hover:text-[var(--g-neon-flash)] hover:bg-[rgba(255,122,0,0.12)] transition-colors opacity-65 hover:opacity-100 flex items-center justify-center"
-            title="Studio CMS Access"
+            className="ml-1 p-1 rounded text-[var(--g-muted)] hover:text-[var(--g-neon-flash)] hover:bg-[rgba(255,122,0,0.12)] transition-colors opacity-75 hover:opacity-100 flex items-center justify-center"
+            title="Studio CMS"
             aria-label="Studio CMS"
           >
             <svg
@@ -53,9 +58,6 @@ export function Footer() {
               <path d="M7 11V7a5 5 0 0 1 10 0v4" strokeWidth="2" />
             </svg>
           </Link>
-          <button type="button" className="footer-pill-btn" onClick={downloadVCard}>
-            DOWNLOAD V-CARD
-          </button>
         </div>
       </div>
     </footer>
