@@ -14,9 +14,9 @@ import type {
 const DEFAULT_PROFILE: ProfileData = {
   fullName: 'Dipanjan Baidya',
   moniker: 'XOM 669',
-  headline: 'Creative Web Developer & Digital Artist',
+  headline: 'ER STUDENT , CODER & GRAPHIC ARTIST',
   location: 'Kolkata, West Bengal, India',
-  bio: '19-year-old creative developer and digital artist based in Kolkata, West Bengal. Fueled by modern TypeScript, Adobe Creative Suite, and custom Linux distributions, I bridge the gap between bespoke visual identity, brutalist interfaces, and zero-bloat systems.',
+  bio: 'I’m a 19-year-old nocturnal explorer, audiophile, and frequent night driver. Off the asphalt, I’m involved in real estate and have a background in freelance design. Alongside that, I’m pursuing Computer Science and Engineering, usually channeling my spare hours into quirky, unnecessary scripts that compile well past 2 AM.',
   email: 'dipanjan@xom669.in',
   phone: '+91 98765 43210',
   webHub: 'xom669.in',
@@ -30,8 +30,8 @@ const DEFAULT_PROFILE: ProfileData = {
   discordHandle: 'xom669#0',
   coverBanner: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80',
   avatarImage: '/dipanjan_avatar.png',
-  degree: 'Undergraduate in Computer Science & Technology',
-  specialization: 'Brutalist Interfaces, Alpine ISO Builds, Branding',
+  degree: 'Undergraduate in Computer Science & Engineering',
+  specialization: 'ER STUDENT , CODER & GRAPHIC ARTIST',
   pgpHash: '669A 4B22 F081 XOM9 2026',
   socials: [
     {
@@ -221,27 +221,19 @@ const DEFAULT_SKILLS = [
 const DEFAULT_JOURNEY: JourneyItem[] = [
   {
     id: 'j-1',
-    period: '2024 — Present',
-    title: 'B.Tech / Undergraduate in Computer Science',
-    institution: 'University Technical Campus, Kolkata',
-    desc: 'Specializing in computer architecture, systems design, operating system internals, and full-stack front-end engineering.',
-    status: 'ACTIVE ENROLLMENT'
+    period: '2026-2030',
+    title: 'B.Tech in Computer Science Engeering',
+    institution: 'Heritage Institute of Technology , Kolkata',
+    desc: 'Getting a undergrad CSE degree from HIT from MAKAUT',
+    status: 'Pursuing'
   },
   {
     id: 'j-2',
-    period: '2022 — 2024',
-    title: 'Higher Secondary (Science & Computer Application)',
-    institution: 'Higher Secondary Council, Kolkata, West Bengal',
-    desc: 'Majored in Computer Application, Physics, and Mathematics with high academic distinction.',
-    status: 'COMPLETED'
-  },
-  {
-    id: 'j-3',
-    period: '2021 — 2023',
-    title: 'Independent Digital Art & Branding Freelance',
-    institution: 'Dipanjan Baidya Studio',
-    desc: 'Delivered graphic design systems, print brochures for luxury real estate clients, and high-impact social media creatives.',
-    status: 'CONTINUOUS PRACTICE'
+    period: '2014 - 2026',
+    title: 'Schooling',
+    institution: 'Kendriya Vidyalaya No.2 Saltlake',
+    desc: 'Completed my 10th and 12th',
+    status: 'Completed'
   }
 ];
 
@@ -271,7 +263,7 @@ const DEFAULT_HEADER_CONFIG: HeaderConfig = {
   showTicker: false,
   brandTitle: '',
   brandBadge: '',
-  tickerText: 'DIPANJAN BAIDYA • CREATIVE DEVELOPER & DIGITAL ARTIST • KOLKATA, INDIA • SYSTEMS & DESIGN',
+  tickerText: 'DIPANJAN BAIDYA • ER STUDENT , CODER & GRAPHIC ARTIST • KOLKATA, INDIA',
   showCard: true,
   customHeroText: '',
   cardSpacing: 'flush'
@@ -284,8 +276,7 @@ const DEFAULT_FOOTER_CONFIG: FooterConfig = {
 };
 
 export const DEFAULT_YOUTUBE_VIDEOS: string[] = [
-  'https://www.youtube.com/watch?v=ScMzIvxBSi4',
-  'https://www.youtube.com/watch?v=jfKfPfyJRdk'
+  'https://www.youtube.com/watch?v=ScMzIvxBSi4'
 ];
 
 export function extractYoutubeId(url: string): string | null {
@@ -368,8 +359,22 @@ function loadStorage<T>(key: string, fallback: T): T {
 export function PortfolioProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<ProfileData>(() => {
     const loaded = loadStorage('xom669_profile', DEFAULT_PROFILE);
-    if (loaded && (loaded.email === 'dipanjanbaidya2007@gmail.com' || !loaded.email)) {
-      loaded.email = 'dipanjan@xom669.in';
+    if (loaded) {
+      if (!loaded.headline || loaded.headline === 'Creative Web Developer & Digital Artist') {
+        loaded.headline = DEFAULT_PROFILE.headline;
+      }
+      if (!loaded.bio || loaded.bio.includes('19-year-old creative developer and digital artist based in Kolkata')) {
+        loaded.bio = DEFAULT_PROFILE.bio;
+      }
+      if (!loaded.specialization || loaded.specialization === 'Brutalist Interfaces, Alpine ISO Builds, Branding') {
+        loaded.specialization = DEFAULT_PROFILE.specialization;
+      }
+      if (!loaded.degree || loaded.degree === 'Undergraduate in Computer Science & Technology') {
+        loaded.degree = DEFAULT_PROFILE.degree;
+      }
+      if (loaded.email === 'dipanjanbaidya2007@gmail.com' || !loaded.email) {
+        loaded.email = 'dipanjan@xom669.in';
+      }
     }
     return loaded;
   });
@@ -382,9 +387,13 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
   const [skills, setSkills] = useState<string[]>(() =>
     loadStorage('xom669_skills', DEFAULT_SKILLS)
   );
-  const [journey, setJourney] = useState<JourneyItem[]>(() =>
-    loadStorage('xom669_journey', DEFAULT_JOURNEY)
-  );
+  const [journey, setJourney] = useState<JourneyItem[]>(() => {
+    const loaded = loadStorage('xom669_journey', DEFAULT_JOURNEY);
+    if (Array.isArray(loaded) && loaded.some((item) => item.institution?.includes('University Technical Campus'))) {
+      return DEFAULT_JOURNEY;
+    }
+    return loaded;
+  });
   const [milestones, setMilestones] = useState<MilestoneItem[]>(() =>
     loadStorage('xom669_milestones', DEFAULT_MILESTONES)
   );
@@ -399,9 +408,14 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
   const [footerConfig, setFooterConfig] = useState<FooterConfig>(() =>
     loadStorage('xom669_footer_config', DEFAULT_FOOTER_CONFIG)
   );
-  const [youtubeVideos, setYoutubeVideos] = useState<string[]>(() =>
-    loadStorage('xom669_youtube_videos', DEFAULT_YOUTUBE_VIDEOS)
-  );
+  const [youtubeVideos, setYoutubeVideos] = useState<string[]>(() => {
+    const loaded = loadStorage('xom669_youtube_videos', DEFAULT_YOUTUBE_VIDEOS);
+    if (Array.isArray(loaded)) {
+      const filtered = loaded.filter((v) => !v.includes('jfKfPfyJRdk'));
+      if (filtered.length > 0) return filtered;
+    }
+    return DEFAULT_YOUTUBE_VIDEOS;
+  });
 
   const [adminPasscode, setAdminPasscode] = useState<string>(() => {
     try {

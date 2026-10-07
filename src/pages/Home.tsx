@@ -145,7 +145,11 @@ export default function Home() {
               ref={flipperRef}
             >
               {/* PASS FRONT */}
-              <div className="pass-surface pass-surface-front">
+              <div
+                className={`pass-surface pass-surface-front ${
+                  isFlipped ? 'surface-hidden' : 'surface-active'
+                }`}
+              >
                 {/* TOP COVER BANNER (Clean, removed 'Pass #xom669' & 'Edit CMS') */}
                 <div className="card-cover-banner-wrap">
                   <img
@@ -242,7 +246,11 @@ export default function Home() {
               </div>
 
               {/* PASS BACK: DRAFT SPECS */}
-              <div className="pass-surface pass-surface-back">
+              <div
+                className={`pass-surface pass-surface-back ${
+                  isFlipped ? 'surface-active' : 'surface-hidden'
+                }`}
+              >
                 <div>
                   <div className="back-nav-bar">
                     <span className="back-draft-badge text-[10px] sm:text-xs">

@@ -400,6 +400,7 @@
   position: absolute;
   inset: 0;
   backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
   background: linear-gradient(150deg, #1C0B35 0%, #100422 60%, #1A0830 100%);
   border: 1.5px solid var(--g-border-solid);
   border-radius: 8px;
@@ -410,22 +411,34 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  overflow: hidden;
-  transform: translateZ(0);
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, opacity 0.35s ease;
 }
 
-.pass-surface:hover {
-  border-color: var(--g-emerald);
-  box-shadow: 
-    0 25px 65px rgba(0, 0, 0, 0.95),
-    0 0 35px rgba(255, 122, 0, 0.3);
+.pass-surface-front {
+  transform: rotateY(0deg) translateZ(1px);
+  -webkit-transform: rotateY(0deg) translateZ(1px);
 }
 
 .pass-surface-back {
-  transform: rotateY(180deg);
+  transform: rotateY(180deg) translateZ(1px);
+  -webkit-transform: rotateY(180deg) translateZ(1px);
   background: linear-gradient(150deg, #200D3D 0%, #120526 70%, #1A0932 100%);
   padding: 34px;
+}
+
+/* Bulletproof active/hidden state toggles for 3D card faces across all browsers */
+.pass-surface.surface-hidden {
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  z-index: 0 !important;
+}
+
+.pass-surface.surface-active {
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  z-index: 10 !important;
 }
 
 /* POLARIZED LENS LIGHT FLARE SWEEP */
