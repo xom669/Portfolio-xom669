@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, type ReactNode } from 'react';
+import { fetchFromCloud, pushToCloud } from '../lib/cloudSync';
 import type {
   ProfileData,
   ProjectItem,
@@ -321,18 +322,26 @@ interface PortfolioContextType {
   toastMessage: string | null;
   adminPasscode: string;
 
+  cloudSyncStatus: 'idle' | 'syncing' | 'synced' | 'error';
+  lastSyncedTime: string | null;
+  syncWithCloud: () => Promise<void>;
+
   updateProfile: (profile: Partial<ProfileData>) => void;
   updateSocials: (socials: SocialLink[]) => void;
   addProject: (project: Omit<ProjectItem, 'id'>) => void;
   updateProject: (id: string, project: Partial<ProjectItem>) => void;
   deleteProject: (id: string) => void;
+  moveProject: (index: number, direction: 'up' | 'down') => void;
 
   addMaterial: (material: Omit<MaterialItem, 'id'>) => void;
   updateMaterial: (id: string, material: Partial<MaterialItem>) => void;
   deleteMaterial: (id: string) => void;
+  moveMaterial: (index: number, direction: 'up' | 'down') => void;
 
   updateSkills: (skills: string[]) => void;
   updateJourney: (journey: JourneyItem[]) => void;
+  deleteJourney: (id: string) => void;
+  moveJourney: (index: number, direction: 'up' | 'down') => void;
   updateMilestones: (milestones: MilestoneItem[]) => void;
   updateHeaderConfig: (config: Partial<HeaderConfig>) => void;
   updateFooterConfig: (config: Partial<FooterConfig>) => void;
@@ -403,6 +412,154 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
   });
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Real-time Cloud Synchronization across PC and Mobile devices
+  const [cloudSyncStatus, setCloudSyncStatus] = useState<'idle' | 'syncing' | 'synced' | 'error'>('idle');
+  const [lastSyncedTime, setLastSyncedTime] = useState<string | null>(null);
+  const isInitialCloudLoadComplete = useRef(false);
+
+  // Background cloud fetch on startup to unify PC and Mobile
+  useEffect(() => {
+    let isMounted = true;
+    async function initCloudSync() {
+      setCloudSyncStatus('syncing');
+      try {
+        const cloud = await fetchFromCloud();
+        if (cloud && isMounted) {
+          if (cloud.profile) {
+            setProfile(cloud.profile);
+            if (Array.isArray(cloud.projects)) setProjects(cloud.projects);
+            if (Array.isArray(cloud.materials)) setMaterials(cloud.materials);
+            if (Array.isArray(cloud.skills)) setSkills(cloud.skills);
+            if (Array.isArray(cloud.journey)) setJourney(cloud.journey);
+            if (Array.isArray(cloud.milestones)) setMilestones(cloud.milestones);
+            if (cloud.headerConfig) setHeaderConfig(cloud.headerConfig);
+            if (cloud.footerConfig) setFooterConfig(cloud.footerConfig);
+            if (Array.isArray(cloud.youtubeVideos)) setYoutubeVideos(cloud.youtubeVideos);
+            if (cloud.adminPasscode) setAdminPasscode(cloud.adminPasscode);
+
+            setCloudSyncStatus('synced');
+            setLastSyncedTime(new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' }));
+          } else {
+            // First time seeding cloud data from defaults
+            pushToCloud({
+              profile,
+              projects,
+              materials,
+              skills,
+              journey,
+              milestones,
+              headerConfig,
+              footerConfig,
+              youtubeVideos,
+              adminPasscode
+            }).then(() => {
+              if (isMounted) {
+                setCloudSyncStatus('synced');
+                setLastSyncedTime(new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' }));
+              }
+            });
+          }
+        } else if (isMounted) {
+          setCloudSyncStatus('synced');
+        }
+      } catch {
+        if (isMounted) setCloudSyncStatus('error');
+      } finally {
+        if (isMounted) isInitialCloudLoadComplete.current = true;
+      }
+    }
+    initCloudSync();
+
+    // When user switches back to PC or Mobile tab, auto-sync from cloud
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchFromCloud().then((cloud) => {
+          if (cloud?.profile && isMounted) {
+            setProfile(cloud.profile);
+            if (Array.isArray(cloud.projects)) setProjects(cloud.projects);
+            if (Array.isArray(cloud.materials)) setMaterials(cloud.materials);
+            if (Array.isArray(cloud.skills)) setSkills(cloud.skills);
+            if (Array.isArray(cloud.journey)) setJourney(cloud.journey);
+            if (Array.isArray(cloud.milestones)) setMilestones(cloud.milestones);
+            if (cloud.headerConfig) setHeaderConfig(cloud.headerConfig);
+            if (cloud.footerConfig) setFooterConfig(cloud.footerConfig);
+            if (Array.isArray(cloud.youtubeVideos)) setYoutubeVideos(cloud.youtubeVideos);
+            if (cloud.adminPasscode) setAdminPasscode(cloud.adminPasscode);
+            setCloudSyncStatus('synced');
+            setLastSyncedTime(new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' }));
+          }
+        });
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      isMounted = false;
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+
+  // Debounced cloud push whenever state is updated (after initial pull)
+  useEffect(() => {
+    if (!isInitialCloudLoadComplete.current) return;
+
+    setCloudSyncStatus('syncing');
+    const timer = setTimeout(() => {
+      pushToCloud({
+        profile,
+        projects,
+        materials,
+        skills,
+        journey,
+        milestones,
+        headerConfig,
+        footerConfig,
+        youtubeVideos,
+        adminPasscode
+      }).then((ok) => {
+        if (ok) {
+          setCloudSyncStatus('synced');
+          setLastSyncedTime(new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' }));
+        } else {
+          setCloudSyncStatus('error');
+        }
+      });
+    }, 1200);
+
+    return () => clearTimeout(timer);
+  }, [profile, projects, materials, skills, journey, milestones, headerConfig, footerConfig, youtubeVideos, adminPasscode]);
+
+  // Manual sync function for CMS button
+  const syncWithCloud = async () => {
+    setCloudSyncStatus('syncing');
+    showToast('↻ Synchronizing with cloud database...');
+    try {
+      const cloud = await fetchFromCloud();
+      if (cloud) {
+        if (cloud.profile) setProfile(cloud.profile);
+        if (Array.isArray(cloud.projects)) setProjects(cloud.projects);
+        if (Array.isArray(cloud.materials)) setMaterials(cloud.materials);
+        if (Array.isArray(cloud.skills)) setSkills(cloud.skills);
+        if (Array.isArray(cloud.journey)) setJourney(cloud.journey);
+        if (Array.isArray(cloud.milestones)) setMilestones(cloud.milestones);
+        if (cloud.headerConfig) setHeaderConfig(cloud.headerConfig);
+        if (cloud.footerConfig) setFooterConfig(cloud.footerConfig);
+        if (Array.isArray(cloud.youtubeVideos)) setYoutubeVideos(cloud.youtubeVideos);
+        if (cloud.adminPasscode) setAdminPasscode(cloud.adminPasscode);
+        setCloudSyncStatus('synced');
+        setLastSyncedTime(new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' }));
+        showToast('✓ PC & Mobile are 100% synchronized!');
+      } else {
+        setCloudSyncStatus('error');
+        showToast('✕ Could not reach cloud database.');
+      }
+    } catch {
+      setCloudSyncStatus('error');
+      showToast('✕ Network error during sync.');
+    }
+  };
 
   // Auto-sync state to localStorage
   useEffect(() => {
@@ -489,7 +646,20 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
 
   const deleteProject = (id: string) => {
     setProjects((prev) => prev.filter((p) => p.id !== id));
-    showToast('✓ Project removed.');
+    showToast('✓ Project removed from catalog.');
+  };
+
+  const moveProject = (index: number, direction: 'up' | 'down') => {
+    setProjects((prev) => {
+      const next = [...prev];
+      const targetIndex = direction === 'up' ? index - 1 : index + 1;
+      if (targetIndex < 0 || targetIndex >= next.length) return prev;
+      const temp = next[index];
+      next[index] = next[targetIndex];
+      next[targetIndex] = temp;
+      return next;
+    });
+    showToast(`✓ Project order shifted ${direction}.`);
   };
 
   const addMaterial = (material: Omit<MaterialItem, 'id'>) => {
@@ -513,6 +683,19 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
     showToast('✓ Study Material removed.');
   };
 
+  const moveMaterial = (index: number, direction: 'up' | 'down') => {
+    setMaterials((prev) => {
+      const next = [...prev];
+      const targetIndex = direction === 'up' ? index - 1 : index + 1;
+      if (targetIndex < 0 || targetIndex >= next.length) return prev;
+      const temp = next[index];
+      next[index] = next[targetIndex];
+      next[targetIndex] = temp;
+      return next;
+    });
+    showToast(`✓ Material moved ${direction}.`);
+  };
+
   const updateSkills = (newSkills: string[]) => {
     setSkills(newSkills);
     showToast('✓ Skills armory updated!');
@@ -521,6 +704,24 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
   const updateJourney = (newJourney: JourneyItem[]) => {
     setJourney(newJourney);
     showToast('✓ Education & Journey updated!');
+  };
+
+  const deleteJourney = (id: string) => {
+    setJourney((prev) => prev.filter((j) => j.id !== id));
+    showToast('✓ Journey milestone removed.');
+  };
+
+  const moveJourney = (index: number, direction: 'up' | 'down') => {
+    setJourney((prev) => {
+      const next = [...prev];
+      const targetIndex = direction === 'up' ? index - 1 : index + 1;
+      if (targetIndex < 0 || targetIndex >= next.length) return prev;
+      const temp = next[index];
+      next[index] = next[targetIndex];
+      next[targetIndex] = temp;
+      return next;
+    });
+    showToast(`✓ Journey entry moved ${direction}.`);
   };
 
   const updateMilestones = (newMilestones: MilestoneItem[]) => {
@@ -599,16 +800,23 @@ END:VCARD`;
         youtubeVideos,
         toastMessage,
         adminPasscode,
+        cloudSyncStatus,
+        lastSyncedTime,
+        syncWithCloud,
         updateProfile,
         updateSocials,
         addProject,
         updateProject,
         deleteProject,
+        moveProject,
         addMaterial,
         updateMaterial,
         deleteMaterial,
+        moveMaterial,
         updateSkills,
         updateJourney,
+        deleteJourney,
+        moveJourney,
         updateMilestones,
         updateHeaderConfig,
         updateFooterConfig,

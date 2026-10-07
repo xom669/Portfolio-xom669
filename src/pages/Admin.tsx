@@ -1,6 +1,7 @@
 import { useState, type FormEvent, type ChangeEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { usePortfolio, getYoutubeEmbedUrl } from '../context/PortfolioContext';
+import { compressImage } from '../lib/imageCompressor';
 import type { ProjectItem, MaterialItem, JourneyItem, SocialLink } from '../types';
 
 export default function Admin() {
@@ -11,13 +12,17 @@ export default function Admin() {
     projects,
     addProject,
     deleteProject,
+    moveProject,
     materials,
     addMaterial,
     deleteMaterial,
+    moveMaterial,
     skills,
     updateSkills,
     journey,
     updateJourney,
+    deleteJourney,
+    moveJourney,
     headerConfig,
     updateHeaderConfig,
     footerConfig,
@@ -27,7 +32,10 @@ export default function Admin() {
     adminPasscode,
     updateAdminPasscode,
     resetToDefaults,
-    showToast
+    showToast,
+    cloudSyncStatus,
+    lastSyncedTime,
+    syncWithCloud
   } = usePortfolio();
 
   // Password Gate State
@@ -42,6 +50,10 @@ export default function Admin() {
   const [enteredPasscode, setEnteredPasscode] = useState('');
   const [authError, setAuthError] = useState(false);
   const [newPasscodeDraft, setNewPasscodeDraft] = useState('');
+
+  // Project Deletion Gate Modal State (Requires tick-box confirmation)
+  const [projectToDelete, setProjectToDelete] = useState<ProjectItem | null>(null);
+  const [isDeleteConfirmedChecked, setIsDeleteConfirmedChecked] = useState(false);
 
   // Reset Confirmation Password Gate State
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
@@ -289,35 +301,35 @@ export default function Admin() {
     setNewPasscodeDraft('');
   };
 
-  // Media uploaders
-  const handleCoverUpload = (e: ChangeEvent<HTMLInputElement>) => {
+  // Media uploaders with client-side canvas compression for mobile camera photos
+  const handleCoverUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      const b64 = evt.target?.result as string;
-      if (b64) {
-        setProfileDraft((prev) => ({ ...prev, coverBanner: b64 }));
-        updateProfile({ coverBanner: b64 });
-        showToast('✓ Cover banner updated!');
-      }
-    };
-    reader.readAsDataURL(file);
+    showToast('⚡ Compressing cover banner...');
+    try {
+      const b64 = await compressImage(file, 1200, 600, 0.85);
+      setProfileDraft((prev) => ({ ...prev, coverBanner: b64 }));
+      updateProfile({ coverBanner: b64 });
+      showToast('✓ Cover banner compressed & updated!');
+    } catch (err) {
+      console.error('Cover banner upload failed:', err);
+      showToast('✕ Failed to process cover banner.');
+    }
   };
 
-  const handleAvatarUpload = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      const b64 = evt.target?.result as string;
-      if (b64) {
-        setProfileDraft((prev) => ({ ...prev, avatarImage: b64 }));
-        updateProfile({ avatarImage: b64 });
-        showToast('✓ Avatar updated!');
-      }
-    };
-    reader.readAsDataURL(file);
+    showToast('⚡ Compressing avatar photo...');
+    try {
+      const b64 = await compressImage(file, 600, 600, 0.85);
+      setProfileDraft((prev) => ({ ...prev, avatarImage: b64 }));
+      updateProfile({ avatarImage: b64 });
+      showToast('✓ Avatar photo compressed & saved!');
+    } catch (err) {
+      console.error('Avatar upload failed:', err);
+      showToast('✕ Failed to process avatar image.');
+    }
   };
 
   // Add Project Submit
@@ -424,6 +436,43 @@ export default function Admin() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2 font-mono">
+          {/* Cloud Sync Status Indicator & Manual Sync Button */}
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded bg-[var(--g-black)] border border-[var(--g-border)] text-[11px]">
+            <span
+              className={`w-2 h-2 rounded-full ${
+                cloudSyncStatus === 'synced'
+                  ? 'bg-emerald-400'
+                  : cloudSyncStatus === 'syncing'
+                  ? 'bg-amber-400 animate-pulse'
+                  : cloudSyncStatus === 'error'
+                  ? 'bg-red-400'
+                  : 'bg-neutral-500'
+              }`}
+            />
+            <span className="text-neutral-300 font-bold">
+              {cloudSyncStatus === 'synced'
+                ? 'SYNCED'
+                : cloudSyncStatus === 'syncing'
+                ? 'SYNCING...'
+                : cloudSyncStatus === 'error'
+                ? 'OFFLINE'
+                : 'CLOUD'}
+            </span>
+            {lastSyncedTime && (
+              <span className="text-[10px] text-[var(--g-muted)] hidden sm:inline">
+                ({lastSyncedTime})
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => syncWithCloud()}
+              className="ml-1 text-[var(--g-neon-flash)] hover:underline font-bold"
+              title="Force sync now between PC and Mobile"
+            >
+              ↻ SYNC NOW
+            </button>
+          </div>
+
           <Link
             to="/"
             className="btn-green-glass btn-highlight text-xs py-2 px-4 text-decoration-none"
@@ -498,6 +547,62 @@ export default function Admin() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* PROJECT DELETION CONFIRMATION MODAL WITH TICK-BOX */}
+      {projectToDelete && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-xl bg-[var(--g-frame)] border border-red-500/60 p-6 space-y-4 shadow-2xl font-mono text-xs animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center gap-2 text-red-400">
+              <span className="text-xl">🗑️</span>
+              <h3 className="font-display text-lg font-bold uppercase text-white">Confirm Project Deletion</h3>
+            </div>
+            <p className="text-neutral-300 leading-relaxed">
+              You are about to permanently delete <strong className="text-white font-bold">"{projectToDelete.title}"</strong> from the project catalog. This will sync and remove it from both PC and mobile versions.
+            </p>
+            <label className="flex items-start gap-3 p-3.5 rounded bg-red-950/30 border border-red-850/50 cursor-pointer text-neutral-200 select-none">
+              <input
+                type="checkbox"
+                checked={isDeleteConfirmedChecked}
+                onChange={(e) => setIsDeleteConfirmedChecked(e.target.checked)}
+                className="mt-0.5 w-4 h-4 rounded accent-red-500 cursor-pointer"
+              />
+              <span className="text-[11px] leading-snug">
+                I confirm that I want to delete this project from the catalog.
+              </span>
+            </label>
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setProjectToDelete(null);
+                  setIsDeleteConfirmedChecked(false);
+                }}
+                className="py-2 px-3 rounded bg-white/5 border border-white/10 hover:bg-white/10 text-neutral-300 font-mono"
+              >
+                CANCEL
+              </button>
+              <button
+                type="button"
+                disabled={!isDeleteConfirmedChecked}
+                onClick={() => {
+                  if (isDeleteConfirmedChecked && projectToDelete) {
+                    deleteProject(projectToDelete.id);
+                    setProjectToDelete(null);
+                    setIsDeleteConfirmedChecked(false);
+                  }
+                }}
+                className={`py-2 px-4 rounded font-bold font-mono transition-all ${
+                  isDeleteConfirmedChecked
+                    ? 'bg-red-600 hover:bg-red-500 text-white cursor-pointer shadow-lg shadow-red-950/50'
+                    : 'bg-red-950/30 text-neutral-500 border border-red-900/30 cursor-not-allowed'
+                }`}
+              >
+                DELETE PROJECT
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -1018,10 +1123,15 @@ export default function Admin() {
 
           {/* List Existing Projects */}
           <div className="space-y-4">
-            <h3 className="font-display text-2xl font-black text-white uppercase">
-              Current Project Catalog ({projects.length})
-            </h3>
-            {projects.map((p) => (
+            <div className="flex items-center justify-between">
+              <h3 className="font-display text-2xl font-black text-white uppercase">
+                Current Project Catalog ({projects.length})
+              </h3>
+              <span className="font-mono text-xs text-[var(--g-muted)]">
+                Use ↑ / ↓ to rearrange display sequence on live site
+              </span>
+            </div>
+            {projects.map((p, idx) => (
               <div
                 key={p.id}
                 className="p-5 rounded-lg bg-[var(--g-frame)] border border-[var(--g-border-solid)] flex flex-col md:flex-row md:items-center justify-between gap-4"
@@ -1030,6 +1140,7 @@ export default function Admin() {
                   <div className="flex items-center gap-2">
                     <span className="unit-badge-tag text-[9px]">{p.badge}</span>
                     <span className="text-[var(--g-muted)] uppercase">({p.category})</span>
+                    <span className="text-[10px] text-neutral-500 font-bold">#{idx + 1}</span>
                   </div>
                   <h4 className="font-display text-xl font-bold text-white pt-1">{p.title}</h4>
                   <p className="text-[var(--g-muted)] leading-relaxed">{p.desc}</p>
@@ -1037,8 +1148,37 @@ export default function Admin() {
                 <div className="flex items-center gap-2 shrink-0">
                   <button
                     type="button"
-                    onClick={() => deleteProject(p.id)}
-                    className="px-3 py-1.5 rounded bg-red-950/60 border border-red-800 text-red-400 hover:text-white font-mono text-xs"
+                    disabled={idx === 0}
+                    onClick={() => moveProject(idx, 'up')}
+                    className={`px-2.5 py-1.5 rounded border text-xs font-mono font-bold transition-all ${
+                      idx === 0
+                        ? 'opacity-25 cursor-not-allowed border-white/5 text-neutral-600'
+                        : 'bg-white/5 border-white/15 text-neutral-200 hover:text-white hover:bg-white/10'
+                    }`}
+                    title="Move Project Up"
+                  >
+                    ↑ UP
+                  </button>
+                  <button
+                    type="button"
+                    disabled={idx === projects.length - 1}
+                    onClick={() => moveProject(idx, 'down')}
+                    className={`px-2.5 py-1.5 rounded border text-xs font-mono font-bold transition-all ${
+                      idx === projects.length - 1
+                        ? 'opacity-25 cursor-not-allowed border-white/5 text-neutral-600'
+                        : 'bg-white/5 border-white/15 text-neutral-200 hover:text-white hover:bg-white/10'
+                    }`}
+                    title="Move Project Down"
+                  >
+                    ↓ DOWN
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setProjectToDelete(p);
+                      setIsDeleteConfirmedChecked(false);
+                    }}
+                    className="px-3 py-1.5 rounded bg-red-950/60 border border-red-800 text-red-400 hover:text-white font-mono text-xs font-bold"
                   >
                     DELETE
                   </button>
@@ -1143,10 +1283,15 @@ export default function Admin() {
 
           {/* List Existing Materials */}
           <div className="space-y-4">
-            <h3 className="font-display text-2xl font-black text-white uppercase">
-              Current Vault Resources ({materials.length})
-            </h3>
-            {materials.map((m) => (
+            <div className="flex items-center justify-between">
+              <h3 className="font-display text-2xl font-black text-white uppercase">
+                Current Vault Resources ({materials.length})
+              </h3>
+              <span className="font-mono text-xs text-[var(--g-muted)]">
+                Use ↑ / ↓ to arrange Vault download sequence
+              </span>
+            </div>
+            {materials.map((m, idx) => (
               <div
                 key={m.id}
                 className="p-5 rounded-lg bg-[var(--g-frame)] border border-[var(--g-border-solid)] flex flex-col md:flex-row md:items-center justify-between gap-4"
@@ -1156,6 +1301,7 @@ export default function Admin() {
                     <span className="unit-badge-tag text-[9px]">{m.fileType}</span>
                     <span className="text-[var(--g-muted)]">SIZE: {m.fileSize}</span>
                     <span className="text-[var(--g-emerald)] uppercase">({m.category})</span>
+                    <span className="text-[10px] text-neutral-500 font-bold">#{idx + 1}</span>
                   </div>
                   <h4 className="font-display text-xl font-bold text-white pt-1">{m.title}</h4>
                   <p className="text-[var(--g-muted)] leading-relaxed">{m.desc}</p>
@@ -1163,8 +1309,34 @@ export default function Admin() {
                 <div className="flex items-center gap-2 shrink-0">
                   <button
                     type="button"
+                    disabled={idx === 0}
+                    onClick={() => moveMaterial(idx, 'up')}
+                    className={`px-2.5 py-1.5 rounded border text-xs font-mono font-bold transition-all ${
+                      idx === 0
+                        ? 'opacity-25 cursor-not-allowed border-white/5 text-neutral-600'
+                        : 'bg-white/5 border-white/15 text-neutral-200 hover:text-white hover:bg-white/10'
+                    }`}
+                    title="Move Material Up"
+                  >
+                    ↑ UP
+                  </button>
+                  <button
+                    type="button"
+                    disabled={idx === materials.length - 1}
+                    onClick={() => moveMaterial(idx, 'down')}
+                    className={`px-2.5 py-1.5 rounded border text-xs font-mono font-bold transition-all ${
+                      idx === materials.length - 1
+                        ? 'opacity-25 cursor-not-allowed border-white/5 text-neutral-600'
+                        : 'bg-white/5 border-white/15 text-neutral-200 hover:text-white hover:bg-white/10'
+                    }`}
+                    title="Move Material Down"
+                  >
+                    ↓ DOWN
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => deleteMaterial(m.id)}
-                    className="px-3 py-1.5 rounded bg-red-950/60 border border-red-800 text-red-400 hover:text-white font-mono text-xs"
+                    className="px-3 py-1.5 rounded bg-red-950/60 border border-red-800 text-red-400 hover:text-white font-mono text-xs font-bold"
                   >
                     DELETE
                   </button>
@@ -1419,10 +1591,15 @@ export default function Admin() {
 
           {/* List Existing Journey */}
           <div className="space-y-4">
-            <h3 className="font-display text-2xl font-black text-white uppercase">
-              Current Journey Milestones ({journey.length})
-            </h3>
-            {journey.map((j) => (
+            <div className="flex items-center justify-between">
+              <h3 className="font-display text-2xl font-black text-white uppercase">
+                Current Journey Milestones ({journey.length})
+              </h3>
+              <span className="font-mono text-xs text-[var(--g-muted)]">
+                Use ↑ / ↓ to arrange chronology order
+              </span>
+            </div>
+            {journey.map((j, idx) => (
               <div
                 key={j.id}
                 className="p-5 rounded-lg bg-[var(--g-frame)] border border-[var(--g-border-solid)] flex flex-col md:flex-row md:items-center justify-between gap-4"
@@ -1431,16 +1608,43 @@ export default function Admin() {
                   <div className="flex items-center gap-2">
                     <span className="unit-badge-tag text-[9px]">{j.period}</span>
                     <span className="text-[var(--g-neon-flash)] font-bold">{j.status}</span>
+                    <span className="text-[10px] text-neutral-500 font-bold">#{idx + 1}</span>
                   </div>
                   <h4 className="font-display text-xl font-bold text-white pt-1">{j.title}</h4>
                   <span className="text-[var(--g-emerald)] block">{j.institution}</span>
                   <p className="text-[var(--g-muted)] leading-relaxed pt-1">{j.desc}</p>
                 </div>
-                <div className="shrink-0">
+                <div className="flex items-center gap-2 shrink-0">
                   <button
                     type="button"
-                    onClick={() => updateJourney(journey.filter((item) => item.id !== j.id))}
-                    className="px-3 py-1.5 rounded bg-red-950/60 border border-red-800 text-red-400 hover:text-white font-mono text-xs"
+                    disabled={idx === 0}
+                    onClick={() => moveJourney(idx, 'up')}
+                    className={`px-2.5 py-1.5 rounded border text-xs font-mono font-bold transition-all ${
+                      idx === 0
+                        ? 'opacity-25 cursor-not-allowed border-white/5 text-neutral-600'
+                        : 'bg-white/5 border-white/15 text-neutral-200 hover:text-white hover:bg-white/10'
+                    }`}
+                    title="Move Journey Up"
+                  >
+                    ↑ UP
+                  </button>
+                  <button
+                    type="button"
+                    disabled={idx === journey.length - 1}
+                    onClick={() => moveJourney(idx, 'down')}
+                    className={`px-2.5 py-1.5 rounded border text-xs font-mono font-bold transition-all ${
+                      idx === journey.length - 1
+                        ? 'opacity-25 cursor-not-allowed border-white/5 text-neutral-600'
+                        : 'bg-white/5 border-white/15 text-neutral-200 hover:text-white hover:bg-white/10'
+                    }`}
+                    title="Move Journey Down"
+                  >
+                    ↓ DOWN
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => deleteJourney(j.id)}
+                    className="px-3 py-1.5 rounded bg-red-950/60 border border-red-800 text-red-400 hover:text-white font-mono text-xs font-bold"
                   >
                     DELETE
                   </button>
