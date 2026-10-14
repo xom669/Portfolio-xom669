@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { usePortfolio, getYoutubeEmbedUrl } from '../context/PortfolioContext';
+import { usePortfolio, getYoutubeEmbedUrl, isDirectVideoUrl } from '../context/PortfolioContext';
 import type { BlogPost } from '../types';
 
 function getPlatformIcon(platform: string) {
@@ -641,7 +641,7 @@ export default function Home() {
           >
             {youtubeVideos.map((videoUrl, idx) => {
               if (!videoUrl || !videoUrl.trim()) return null;
-              const direct = /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(videoUrl.trim());
+              const direct = isDirectVideoUrl(videoUrl);
               const embedUrl = direct ? null : getYoutubeEmbedUrl(videoUrl, true);
               if (!direct && !embedUrl) return null;
 

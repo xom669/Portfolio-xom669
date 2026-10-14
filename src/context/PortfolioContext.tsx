@@ -274,6 +274,18 @@ export function getYoutubeEmbedUrl(url: string, autoPlay: boolean = true): strin
   return `https://www.youtube-nocookie.com/embed/${id}?controls=0&rel=0`;
 }
 
+export function isDirectVideoUrl(url: string): boolean {
+  if (!url) return false;
+  const trimmed = url.trim().toLowerCase();
+  return (
+    trimmed.startsWith('data:video/') ||
+    trimmed.startsWith('blob:') ||
+    /\.(mp4|webm|ogg|mov|m4v)(\?.*)?$/i.test(trimmed) ||
+    trimmed.includes('/storage/v1/object/public/') ||
+    trimmed.includes('supabase.co/storage')
+  );
+}
+
 interface PortfolioContextType {
   profile: ProfileData;
   projects: ProjectItem[];
@@ -638,7 +650,11 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
   }, [footerConfig]);
 
   useEffect(() => {
-    localStorage.setItem('xom669_youtube_videos', JSON.stringify(youtubeVideos));
+    try {
+      localStorage.setItem('xom669_youtube_videos', JSON.stringify(youtubeVideos));
+    } catch (e) {
+      console.warn('[PortfolioContext] Skipped saving large video to localStorage (handled by Cloud & IndexedDB):', e);
+    }
   }, [youtubeVideos]);
 
   useEffect(() => {

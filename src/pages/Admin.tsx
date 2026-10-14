@@ -1,7 +1,8 @@
 import { useState, type FormEvent, type ChangeEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { usePortfolio, getYoutubeEmbedUrl } from '../context/PortfolioContext';
+import { usePortfolio, getYoutubeEmbedUrl, isDirectVideoUrl } from '../context/PortfolioContext';
 import { compressImage } from '../lib/imageCompressor';
+import { uploadVideoFile, SUPABASE_VIDEOS_BUCKET_SQL } from '../lib/videoStorage';
 import { SUPABASE_SETUP_SQL } from '../lib/cloudSync';
 import type { ProjectItem, MaterialItem, JourneyItem, SocialLink, BlogPost } from '../types';
 
@@ -137,13 +138,17 @@ export default function Admin() {
   const [editingBlogId, setEditingBlogId] = useState<string | null>(null);
   const [postToDelete, setPostToDelete] = useState<BlogPost | null>(null);
 
-  // Featured YouTube Videos Draft (allows pasting 2-3 links directly)
+  // Featured Videos Draft (allows uploading direct video files or pasting links)
   const [videosDraft, setVideosDraft] = useState<string[]>(() => {
     if (youtubeVideos && youtubeVideos.length > 0) {
       return [...youtubeVideos];
     }
     return ['', '', ''];
   });
+
+  // Direct Video File Upload State
+  const [uploadingVideoIdx, setUploadingVideoIdx] = useState<number | null>(null);
+  const [uploadStatus, setUploadStatus] = useState<string>('');
 
   // Local Header/Footer Draft
   const [headerDraft, setHeaderDraft] = useState(() => {
@@ -263,12 +268,50 @@ export default function Admin() {
     showToast('✓ Profile, Biography, and personal details saved!');
   };
 
-  // Handle YouTube Videos Save
+  // Handle Featured Videos Save
   const handleSaveVideos = (e: FormEvent) => {
     e.preventDefault();
     const cleanVideos = videosDraft.map((v) => v.trim()).filter(Boolean);
     updateYoutubeVideos(cleanVideos);
-    showToast('✓ Featured YouTube video showcase saved!');
+    showToast('✓ Featured video showcase saved!');
+  };
+
+  // Direct Video File Upload Handler
+  const handleVideoFileUpload = async (e: ChangeEvent<HTMLInputElement>, idx: number) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 50 * 1024 * 1024) {
+      showToast('⚠️ Video file is larger than 50MB. Upload may take a little longer.');
+    }
+
+    setUploadingVideoIdx(idx);
+    setUploadStatus('Reading video file from device...');
+    showToast('⚡ Processing video upload...');
+
+    try {
+      const result = await uploadVideoFile(file, (msg) => {
+        setUploadStatus(msg);
+      });
+
+      const updated = [...videosDraft];
+      updated[idx] = result.url;
+      setVideosDraft(updated);
+      updateYoutubeVideos(updated);
+
+      if (result.mode === 'storage') {
+        showToast('✓ Video streamed to Supabase Storage CDN & saved!');
+      } else {
+        showToast('✓ Video saved locally & synced to cloud database!');
+      }
+    } catch (err) {
+      console.error('Video upload error:', err);
+      showToast('✕ Video upload failed. Please try another video file or link.');
+    } finally {
+      setUploadingVideoIdx(null);
+      setUploadStatus('');
+      e.target.value = '';
+    }
   };
 
   // Handle Portals & Project Radar Save
@@ -1867,19 +1910,19 @@ export default function Admin() {
       )}
 
       {/* =========================================================================
-          TAB 5: FEATURED VIDEOS (YOUTUBE EMBEDS SHOWCASE)
+          TAB 7: FEATURED VIDEOS (DIRECT UPLOADS & YOUTUBE STREAMING)
           ========================================================================= */}
       {activeTab === 'videos' && (
         <form onSubmit={handleSaveVideos} className="space-y-6">
           <div className="p-6 sm:p-8 rounded-lg bg-[var(--g-frame)] border border-[var(--g-border-solid)] space-y-6">
             <div className="border-b border-[var(--g-border)] pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <span className="unit-badge-tag text-[9px]">VIDEO SHOWCASE CMS</span>
+                <span className="unit-badge-tag text-[9px]">AMBIENT VIDEO CHANNELS</span>
                 <h2 className="font-display text-2xl font-black text-white uppercase mt-1">
-                  Featured YouTube Videos
+                  Ambient Video Loop Channels
                 </h2>
                 <p className="text-xs text-[var(--g-muted)] font-mono mt-1">
-                  Copy and paste 2 or 3 YouTube video links below. They will be displayed directly below the Explore Directory & Portals and Social Networks section on the home page with no extra labels.
+                  Upload video files directly from your phone/PC (MP4, WebM, MOV) or paste YouTube links. Videos run in a clean, ambient loop on the home page with no player controls or branding.
                 </p>
               </div>
               <button type="submit" className="btn-green-glass btn-highlight text-xs py-2 px-5 shrink-0">
@@ -1889,17 +1932,25 @@ export default function Admin() {
 
             <div className="space-y-4 font-mono text-xs">
               {videosDraft.map((videoUrl, idx) => {
-                const embedUrl = getYoutubeEmbedUrl(videoUrl, false);
+                const isDirect = isDirectVideoUrl(videoUrl);
+                const embedUrl = isDirect ? null : getYoutubeEmbedUrl(videoUrl, false);
+                const isUploading = uploadingVideoIdx === idx;
+                const isDataUrl = videoUrl.startsWith('data:video/');
+
                 return (
                   <div key={idx} className="p-4 rounded-lg bg-[var(--g-black)] border border-[var(--g-border)] space-y-3">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
                       <label className="text-[var(--g-emerald)] uppercase font-bold text-xs">
-                        YouTube Video #{idx + 1} Link
+                        Video Channel #{idx + 1} {isDirect ? '• Direct Video File' : '• Stream Link'}
                       </label>
                       <div className="flex items-center gap-2">
-                        {embedUrl ? (
-                          <span className="text-[10px] text-[var(--g-neon-flash)] font-mono">
-                            ✓ READY TO PLAY
+                        {isDirect ? (
+                          <span className="text-[10px] text-emerald-400 font-mono font-bold bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800">
+                            ● DIRECT AMBIENT VIDEO
+                          </span>
+                        ) : embedUrl ? (
+                          <span className="text-[10px] text-[var(--g-neon-flash)] font-mono font-bold bg-amber-950/40 px-2 py-0.5 rounded border border-amber-800">
+                            ● YOUTUBE STREAM
                           </span>
                         ) : videoUrl.trim() ? (
                           <span className="text-[10px] text-red-400 font-mono">
@@ -1925,22 +1976,86 @@ export default function Admin() {
                       </div>
                     </div>
 
-                    <input
-                      type="text"
-                      placeholder="e.g. https://www.youtube.com/watch?v=ScMzIvxBSi4 or https://youtu.be/..."
-                      value={videoUrl}
-                      onChange={(e) => {
-                        const copy = [...videosDraft];
-                        copy[idx] = e.target.value;
-                        setVideosDraft(copy);
-                      }}
-                      className="form-entry w-full"
-                    />
+                    {/* DIRECT UPLOAD BUTTON & INPUT ROW */}
+                    <div className="flex flex-col sm:flex-row gap-2.5 items-stretch">
+                      <div className="flex-1 min-w-0">
+                        {isDataUrl ? (
+                          <div className="flex items-center justify-between px-3 py-2 rounded bg-neutral-900 border border-neutral-700 text-neutral-300 text-xs">
+                            <span className="truncate">
+                              📹 Uploaded Video (~{Math.round(videoUrl.length / 1024)} KB)
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const copy = [...videosDraft];
+                                copy[idx] = '';
+                                setVideosDraft(copy);
+                              }}
+                              className="text-red-400 hover:text-white text-[10px] font-bold ml-2 underline shrink-0"
+                            >
+                              CLEAR
+                            </button>
+                          </div>
+                        ) : (
+                          <input
+                            type="text"
+                            placeholder="Direct video link (.mp4, .webm) or YouTube URL"
+                            value={videoUrl}
+                            onChange={(e) => {
+                              const copy = [...videosDraft];
+                              copy[idx] = e.target.value;
+                              setVideosDraft(copy);
+                            }}
+                            className="form-entry w-full"
+                          />
+                        )}
+                      </div>
 
-                    {embedUrl && (
+                      {/* Direct Upload File Input */}
+                      <label className={`btn-green-glass flex items-center justify-center gap-2 px-4 py-2 cursor-pointer font-bold text-xs shrink-0 select-none ${
+                        isUploading ? 'opacity-50 pointer-events-none' : 'hover:border-emerald-400'
+                      }`}>
+                        <input
+                          type="file"
+                          accept="video/mp4,video/webm,video/ogg,video/quicktime,video/*"
+                          className="hidden"
+                          onChange={(e) => handleVideoFileUpload(e, idx)}
+                          disabled={isUploading}
+                        />
+                        <span>{isUploading ? '⏳ UPLOADING...' : '📁 UPLOAD VIDEO FILE'}</span>
+                      </label>
+                    </div>
+
+                    {isUploading && (
+                      <div className="p-2.5 rounded bg-amber-950/30 border border-amber-800/60 text-amber-300 text-xs flex items-center gap-2 animate-pulse">
+                        <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                        <span>{uploadStatus || 'Processing and caching video...'}</span>
+                      </div>
+                    )}
+
+                    {/* Native Direct Video Preview Player */}
+                    {isDirect && (
+                      <div className="pt-2">
+                        <span className="text-[10px] text-emerald-400 block mb-1.5 uppercase font-mono font-bold">
+                          Direct Video Preview (Autoplays seamlessly on homepage):
+                        </span>
+                        <div className="max-w-md aspect-video rounded-lg overflow-hidden border border-emerald-900/80 bg-black shadow-lg">
+                          <video
+                            src={videoUrl}
+                            controls
+                            muted
+                            playsInline
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* YouTube Video Preview Player */}
+                    {!isDirect && embedUrl && (
                       <div className="pt-2">
                         <span className="text-[10px] text-[var(--g-muted)] block mb-1.5 uppercase font-mono">
-                          Video Player Preview:
+                          YouTube Video Preview:
                         </span>
                         <div className="max-w-md aspect-video rounded-lg overflow-hidden border border-[var(--g-border-solid)] bg-black shadow-lg">
                           <iframe
@@ -1963,7 +2078,7 @@ export default function Admin() {
                   onClick={() => setVideosDraft([...videosDraft, ''])}
                   className="btn-green-glass text-xs py-2 px-4 border border-white/10 text-neutral-300 hover:text-white"
                 >
-                  + ADD ANOTHER VIDEO LINK
+                  + ADD ANOTHER VIDEO CHANNEL
                 </button>
                 <button
                   type="submit"
@@ -1972,6 +2087,29 @@ export default function Admin() {
                   ✓ SAVE FEATURED VIDEOS
                 </button>
               </div>
+            </div>
+
+            {/* Cloud Storage CDN Setup Info Box */}
+            <div className="p-4 rounded-lg bg-[rgba(255,255,255,0.02)] border border-[var(--g-border)] space-y-2 text-xs">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <span className="font-bold text-white flex items-center gap-2">
+                  <span>💡</span> DIRECT VIDEO UPLOAD ENGINE
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(SUPABASE_VIDEOS_BUCKET_SQL).then(() => {
+                      showToast('✓ Storage Bucket SQL copied to clipboard!');
+                    }).catch(() => {});
+                  }}
+                  className="text-[10px] text-[var(--g-emerald)] hover:underline font-bold"
+                >
+                  📋 COPY SUPABASE STORAGE BUCKET SQL
+                </button>
+              </div>
+              <p className="text-[var(--g-muted)] leading-relaxed">
+                Directly uploaded videos are saved and cached automatically via high-speed cloud database sync and instant IndexedDB local cache. If you also want global CDN streaming directly from Supabase Storage, run the copied SQL snippet once in your Supabase SQL Editor.
+              </p>
             </div>
           </div>
         </form>
