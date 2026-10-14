@@ -17,6 +17,8 @@ export interface CloudPortfolioPayload {
   footerConfig?: any;
   youtubeVideos?: string[];
   adminPasscode?: string;
+  portalConfig?: any;
+  blogPosts?: any[];
   updatedAt?: number;
 }
 

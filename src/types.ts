@@ -102,3 +102,22 @@ export interface VideoItem {
   url: string;
   title?: string;
 }
+
+export interface PortalConfig {
+  workDesc: string;
+  materialsDesc: string;
+  aboutDesc: string;
+  flashedProjectIds?: string[];
+}
+
+export interface BlogPost {
+  id: string;
+  title: string;
+  slug?: string;
+  date: string;
+  tag: string;
+  summary: string;
+  content: string;
+  readTime?: string;
+  published?: boolean;
+}

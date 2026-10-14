@@ -54,7 +54,9 @@ export default function Materials() {
         </div>
         <div className="p-4 rounded bg-[var(--g-frame)] border border-[var(--g-border-solid)]">
           <span className="block font-mono text-[10px] text-[var(--g-muted)] uppercase">Formats Available</span>
-          <span className="font-display text-3xl font-black text-[var(--g-emerald)]">PDF, TAR, ZIP</span>
+          <span className="font-display text-3xl font-black text-[var(--g-emerald)]">
+            {materials.length > 0 ? 'PDF, TAR, ZIP' : 'READY'}
+          </span>
         </div>
         <div className="p-4 rounded bg-[var(--g-frame)] border border-[var(--g-border-solid)]">
           <span className="block font-mono text-[10px] text-[var(--g-muted)] uppercase">License Type</span>
@@ -114,8 +116,15 @@ export default function Materials() {
         {/* RIGHT SCROLLABLE DECK */}
         <div className="right-side-scroll-deck">
           {filteredMaterials.length === 0 ? (
-            <div className="p-12 text-center font-mono text-xs text-[var(--g-muted)] border border-dashed border-[var(--g-border)] rounded">
-              NO STUDY MATERIALS FOUND MATCHING YOUR QUERY.
+            <div className="p-12 text-center font-mono text-xs border border-dashed border-[var(--g-border)] rounded bg-black/40 space-y-3">
+              <div className="text-[var(--g-neon-flash)] font-bold text-sm tracking-widest">
+                [ VAULT READY // ZERO PLACEHOLDER BLOT ]
+              </div>
+              <p className="text-[var(--g-muted)] max-w-md mx-auto leading-relaxed">
+                {materials.length === 0
+                  ? 'All default placeholder files have been cleared. Upload or link verified study resources and script packages from the Studio CMS.'
+                  : 'No study materials found matching your search filter.'}
+              </p>
             </div>
           ) : (
             filteredMaterials.map((item) => (

@@ -8,7 +8,9 @@ import type {
   MilestoneItem,
   HeaderConfig,
   FooterConfig,
-  SocialLink
+  SocialLink,
+  PortalConfig,
+  BlogPost
 } from '../types';
 
 const DEFAULT_PROFILE: ProfileData = {
@@ -137,56 +139,25 @@ const DEFAULT_PROJECTS: ProjectItem[] = [
   }
 ];
 
-const DEFAULT_MATERIALS: MaterialItem[] = [
+const DEFAULT_MATERIALS: MaterialItem[] = [];
+
+const DEFAULT_PORTAL_CONFIG: PortalConfig = {
+  workDesc: 'Engineering catalog, production web systems, interactive prototypes, and system utilities.',
+  materialsDesc: 'Curated technical packages, engineering notes, and toolchains.',
+  aboutDesc: '25-skill technical stack, academic engineering timeline, and background.',
+  flashedProjectIds: []
+};
+
+const DEFAULT_BLOG_POSTS: BlogPost[] = [
   {
-    id: 'm-1',
-    title: 'Alpine Linux ISO Build Scripts & Manifests',
-    category: 'systems',
-    downloadUrl: 'https://github.com/dipanjanbaidya2007',
-    fileType: 'TAR.GZ',
-    fileSize: '14.2 MB',
-    desc: 'Complete reproducible scripts, package profiles, APK repositories, and build configs to compile custom bootable Alpine Linux ISOs.',
-    badge: 'FULL BUILD SUITE'
-  },
-  {
-    id: 'm-2',
-    title: 'Algorithms & Data Structures Revision Deck',
-    category: 'dsa',
-    downloadUrl: 'https://github.com/dipanjanbaidya2007',
-    fileType: 'PDF',
-    fileSize: '48 Pages (3.4 MB)',
-    desc: 'Hand-curated quick revision notes on Tree Traversals, Graph Shortest Paths, Dynamic Programming, and C++ STL complexities.',
-    badge: 'EXAM & INTERVIEW READY'
-  },
-  {
-    id: 'm-3',
-    title: 'Cyberpunk Grid & Typography Vector Starter Pack',
-    category: 'design',
-    downloadUrl: 'https://github.com/dipanjanbaidya2007',
-    fileType: 'FIGMA / AI',
-    fileSize: '28.5 MB',
-    desc: 'Clean vector UI kit featuring HUD borders, monospace grid lines, technical warning labels, and barcode glyphs.',
-    badge: 'DESIGN ASSETS'
-  },
-  {
-    id: 'm-4',
-    title: 'Operating Systems & Linux Kernel Architecture Reference',
-    category: 'notes',
-    downloadUrl: 'https://github.com/dipanjanbaidya2007',
-    fileType: 'MARKDOWN / PDF',
-    fileSize: '18 Pages (1.8 MB)',
-    desc: 'Curated technical reference notes on Linux kernels, process management, memory virtual paging, and zero-bloat systems architecture.',
-    badge: 'TECHNICAL GUIDE'
-  },
-  {
-    id: 'm-5',
-    title: 'Modern Front-End Boilerplate & Antigravity Presets',
-    category: 'web',
-    downloadUrl: 'https://github.com/dipanjanbaidya2007',
-    fileType: 'ZIP',
-    fileSize: '6.2 MB',
-    desc: 'Zero-configuration Vite, TypeScript, and Tailwind preset configured with custom canvas metaball backgrounds and cyber tokens.',
-    badge: 'STARTER KIT'
+    id: 'post-1',
+    title: 'Minimal Linux Kernels & Microsecond Tooling Architecture',
+    date: '2026-10-14',
+    tag: 'SYSTEMS',
+    summary: 'Reflections on booting minimal Alpine environments in under 10 seconds, zero-bloat tooling, and low-latency input engines.',
+    content: `When engineering embedded systems or lightweight environments, reducing runtime friction is everything. This dispatch details the rationale behind crafting custom Alpine Linux ISO profiles, trimming unnecessary daemon bloat, and utilizing microsecond-level hooks for low latency.\n\nEvery layer in the stack should justify its memory footprint. By adopting minimal rootfs layouts and native compiled bindings, overall responsiveness scales predictably across modern multicore hardware.`,
+    readTime: '3 MIN READ',
+    published: true
   }
 ];
 
@@ -298,9 +269,9 @@ export function getYoutubeEmbedUrl(url: string, autoPlay: boolean = true): strin
   const id = extractYoutubeId(url);
   if (!id) return null;
   if (autoPlay) {
-    return `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=1&loop=1&playlist=${id}&playsinline=1&controls=1&rel=0&modestbranding=1&enablejsapi=1`;
+    return `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=1&loop=1&playlist=${id}&playsinline=1&controls=0&disablekb=1&iv_load_policy=3&fs=0&modestbranding=1&rel=0&enablejsapi=1`;
   }
-  return `https://www.youtube-nocookie.com/embed/${id}`;
+  return `https://www.youtube-nocookie.com/embed/${id}?controls=0&rel=0`;
 }
 
 interface PortfolioContextType {
@@ -315,6 +286,13 @@ interface PortfolioContextType {
   youtubeVideos: string[];
   toastMessage: string | null;
   adminPasscode: string;
+
+  portalConfig: PortalConfig;
+  blogPosts: BlogPost[];
+  updatePortalConfig: (config: Partial<PortalConfig>) => void;
+  addBlogPost: (post: Omit<BlogPost, 'id'>) => void;
+  updateBlogPost: (id: string, post: Partial<BlogPost>) => void;
+  deleteBlogPost: (id: string) => void;
 
   cloudSyncStatus: 'idle' | 'syncing' | 'synced' | 'error';
   lastSyncedTime: string | null;
@@ -383,11 +361,39 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
     }
     return loaded;
   });
+
+  function purgePlaceholderMaterials(items: any[]): MaterialItem[] {
+    if (!Array.isArray(items)) return [];
+    return items.filter((m) => {
+      if (!m || !m.id) return false;
+      if (['m-1', 'm-2', 'm-3', 'm-4', 'm-5'].includes(m.id)) return false;
+      const titleLower = (m.title || '').toLowerCase();
+      if (
+        titleLower.includes('alpine linux iso') ||
+        titleLower.includes('algorithms & data structures') ||
+        titleLower.includes('cyberpunk grid') ||
+        titleLower.includes('operating systems & linux') ||
+        titleLower.includes('modern front-end boilerplate') ||
+        titleLower.includes('wallpaper') ||
+        titleLower.includes('antigravity preset')
+      ) {
+        return false;
+      }
+      return true;
+    });
+  }
+
   const [projects, setProjects] = useState<ProjectItem[]>(() =>
     loadStorage('xom669_projects', DEFAULT_PROJECTS)
   );
   const [materials, setMaterials] = useState<MaterialItem[]>(() =>
-    loadStorage('xom669_materials', DEFAULT_MATERIALS)
+    purgePlaceholderMaterials(loadStorage('xom669_materials', DEFAULT_MATERIALS))
+  );
+  const [portalConfig, setPortalConfig] = useState<PortalConfig>(() =>
+    loadStorage('xom669_portal_config', DEFAULT_PORTAL_CONFIG)
+  );
+  const [blogPosts, setBlogPosts] = useState<BlogPost[]>(() =>
+    loadStorage('xom669_blog_posts', DEFAULT_BLOG_POSTS)
   );
   const [skills, setSkills] = useState<string[]>(() =>
     loadStorage('xom669_skills', DEFAULT_SKILLS)
@@ -448,7 +454,9 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
           if (cloud.profile) {
             setProfile((prev) => ({ ...prev, ...cloud.profile }));
             if (Array.isArray(cloud.projects)) setProjects(cloud.projects);
-            if (Array.isArray(cloud.materials)) setMaterials(cloud.materials);
+            if (Array.isArray(cloud.materials)) setMaterials(purgePlaceholderMaterials(cloud.materials));
+            if (cloud.portalConfig) setPortalConfig((prev) => ({ ...prev, ...cloud.portalConfig }));
+            if (Array.isArray(cloud.blogPosts)) setBlogPosts(cloud.blogPosts);
             if (Array.isArray(cloud.skills)) setSkills(cloud.skills);
             if (Array.isArray(cloud.journey)) setJourney(cloud.journey);
             if (Array.isArray(cloud.milestones)) setMilestones(cloud.milestones);
@@ -465,6 +473,8 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
               profile,
               projects,
               materials,
+              portalConfig,
+              blogPosts,
               skills,
               journey,
               milestones,
@@ -497,7 +507,9 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
           if (cloud?.profile && isMounted) {
             setProfile((prev) => ({ ...prev, ...cloud.profile }));
             if (Array.isArray(cloud.projects)) setProjects(cloud.projects);
-            if (Array.isArray(cloud.materials)) setMaterials(cloud.materials);
+            if (Array.isArray(cloud.materials)) setMaterials(purgePlaceholderMaterials(cloud.materials));
+            if (cloud.portalConfig) setPortalConfig((prev) => ({ ...prev, ...cloud.portalConfig }));
+            if (Array.isArray(cloud.blogPosts)) setBlogPosts(cloud.blogPosts);
             if (Array.isArray(cloud.skills)) setSkills(cloud.skills);
             if (Array.isArray(cloud.journey)) setJourney(cloud.journey);
             if (Array.isArray(cloud.milestones)) setMilestones(cloud.milestones);
@@ -530,6 +542,8 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
         profile,
         projects,
         materials,
+        portalConfig,
+        blogPosts,
         skills,
         journey,
         milestones,
@@ -548,7 +562,7 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
     }, 1200);
 
     return () => clearTimeout(timer);
-  }, [profile, projects, materials, skills, journey, milestones, headerConfig, footerConfig, youtubeVideos, adminPasscode]);
+  }, [profile, projects, materials, portalConfig, blogPosts, skills, journey, milestones, headerConfig, footerConfig, youtubeVideos, adminPasscode]);
 
   // Manual sync function for CMS button
   const syncWithCloud = async () => {
@@ -559,7 +573,9 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
       if (cloud) {
         if (cloud.profile) setProfile((prev) => ({ ...prev, ...cloud.profile }));
         if (Array.isArray(cloud.projects)) setProjects(cloud.projects);
-        if (Array.isArray(cloud.materials)) setMaterials(cloud.materials);
+        if (Array.isArray(cloud.materials)) setMaterials(purgePlaceholderMaterials(cloud.materials));
+        if (cloud.portalConfig) setPortalConfig((prev) => ({ ...prev, ...cloud.portalConfig }));
+        if (Array.isArray(cloud.blogPosts)) setBlogPosts(cloud.blogPosts);
         if (Array.isArray(cloud.skills)) setSkills(cloud.skills);
         if (Array.isArray(cloud.journey)) setJourney(cloud.journey);
         if (Array.isArray(cloud.milestones)) setMilestones(cloud.milestones);
@@ -592,6 +608,14 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     localStorage.setItem('xom669_materials', JSON.stringify(materials));
   }, [materials]);
+
+  useEffect(() => {
+    localStorage.setItem('xom669_portal_config', JSON.stringify(portalConfig));
+  }, [portalConfig]);
+
+  useEffect(() => {
+    localStorage.setItem('xom669_blog_posts', JSON.stringify(blogPosts));
+  }, [blogPosts]);
 
   useEffect(() => {
     localStorage.setItem('xom669_skills', JSON.stringify(skills));
@@ -763,10 +787,38 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
     showToast('✓ Featured YouTube video showcase updated!');
   };
 
+  const updatePortalConfig = (config: Partial<PortalConfig>) => {
+    setPortalConfig((prev) => ({ ...prev, ...config }));
+    showToast('✓ Portal descriptions and radar settings saved!');
+  };
+
+  const addBlogPost = (post: Omit<BlogPost, 'id'>) => {
+    const newPost: BlogPost = {
+      ...post,
+      id: `post-${Date.now()}`
+    };
+    setBlogPosts((prev) => [newPost, ...prev]);
+    showToast(`✓ Published dispatch: ${newPost.title}`);
+  };
+
+  const updateBlogPost = (id: string, post: Partial<BlogPost>) => {
+    setBlogPosts((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, ...post } : p))
+    );
+    showToast('✓ Dispatch updated!');
+  };
+
+  const deleteBlogPost = (id: string) => {
+    setBlogPosts((prev) => prev.filter((p) => p.id !== id));
+    showToast('✓ Dispatch removed.');
+  };
+
   const resetToDefaults = () => {
     setProfile(DEFAULT_PROFILE);
     setProjects(DEFAULT_PROJECTS);
-    setMaterials(DEFAULT_MATERIALS);
+    setMaterials([]);
+    setPortalConfig(DEFAULT_PORTAL_CONFIG);
+    setBlogPosts(DEFAULT_BLOG_POSTS);
     setSkills(DEFAULT_SKILLS);
     setJourney(DEFAULT_JOURNEY);
     setMilestones(DEFAULT_MILESTONES);
@@ -810,6 +862,8 @@ END:VCARD`;
       profile,
       projects,
       materials,
+      portalConfig,
+      blogPosts,
       skills,
       journey,
       milestones,
@@ -827,7 +881,9 @@ END:VCARD`;
       if (data && typeof data === 'object') {
         if (data.profile) setProfile(data.profile);
         if (Array.isArray(data.projects)) setProjects(data.projects);
-        if (Array.isArray(data.materials)) setMaterials(data.materials);
+        if (Array.isArray(data.materials)) setMaterials(purgePlaceholderMaterials(data.materials));
+        if (data.portalConfig) setPortalConfig((prev) => ({ ...prev, ...data.portalConfig }));
+        if (Array.isArray(data.blogPosts)) setBlogPosts(data.blogPosts);
         if (Array.isArray(data.skills)) setSkills(data.skills);
         if (Array.isArray(data.journey)) setJourney(data.journey);
         if (Array.isArray(data.milestones)) setMilestones(data.milestones);
@@ -859,6 +915,12 @@ END:VCARD`;
         youtubeVideos,
         toastMessage,
         adminPasscode,
+        portalConfig,
+        blogPosts,
+        updatePortalConfig,
+        addBlogPost,
+        updateBlogPost,
+        deleteBlogPost,
         cloudSyncStatus,
         lastSyncedTime,
         syncWithCloud,

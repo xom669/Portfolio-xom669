@@ -33,6 +33,15 @@ export function Navbar() {
 
   const navLinks = [
     {
+      to: '/',
+      label: 'Home',
+      icon: (
+        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+        </svg>
+      )
+    },
+    {
       to: '/work',
       label: 'Projects',
       icon: (
@@ -70,10 +79,6 @@ export function Navbar() {
     }
   ];
 
-  const brandTitle = headerConfig.brandTitle && headerConfig.brandTitle.trim().toLowerCase() !== 'identity card'
-    ? headerConfig.brandTitle.trim()
-    : 'xom669';
-
   return (
     <header className="fixed-site-header">
       {/* OPTIONAL TICKER MARQUEE (CONFIGURABLE VIA BACKEND CMS) */}
@@ -89,45 +94,14 @@ export function Navbar() {
         </div>
       )}
 
-      {/* LAYER 1: TOP BAR WITH HOME BUTTON & BRAND IDENTIFIER */}
-      <div className="header-top-layer border-b border-white/10 px-3 sm:px-6 py-1.5 flex items-center justify-between bg-black/40">
-        <NavLink
-          to="/"
-          className={({ isActive }) =>
-            `flex items-center gap-2 py-1 px-2.5 rounded text-xs font-mono font-medium transition-all text-decoration-none group ${
-              isActive
-                ? 'bg-[rgba(255,122,0,0.22)] text-[var(--g-neon-flash)] border border-[rgba(255,122,0,0.5)] shadow-[0_0_10px_rgba(255,122,0,0.25)]'
-                : 'text-neutral-300 hover:text-white hover:bg-white/5 border border-white/10'
-            }`
-          }
-        >
-          <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-          </svg>
-          <span className="font-semibold tracking-wider uppercase">HOME</span>
-          <span className="text-[10px] text-neutral-500 font-mono hidden xs:inline">// {brandTitle}</span>
-        </NavLink>
-
-        <div className="flex items-center gap-2">
-          <Link
-            to="/admin"
-            className="flex items-center gap-1.5 py-1 px-2.5 rounded text-[11px] font-mono text-neutral-400 hover:text-white hover:bg-white/5 border border-white/10 transition-colors text-decoration-none"
-            title="Studio CMS"
-          >
-            <span className="text-[10px]">⚙</span>
-            <span className="font-medium uppercase">CMS</span>
-          </Link>
-        </div>
-      </div>
-
-      {/* LAYER 2: NAVIGATION MENUS (PROJECTS, VAULT, ABOUT, CONTACT) */}
-      {/* Strict fixed equal column layout with zero font-size or font-weight shifting */}
-      <div className="header-nav-layer px-2 sm:px-6 py-1.5 bg-black/20">
-        <nav className="max-w-xl mx-auto grid grid-cols-4 gap-1 sm:gap-2">
+      {/* MAIN NAVIGATION HEADER: HOME, PROJECTS, VAULT, ABOUT, CONTACT */}
+      <div className="header-nav-layer px-2 sm:px-6 py-2 bg-black/60 backdrop-blur-md border-b border-white/10">
+        <nav className="max-w-xl mx-auto grid grid-cols-5 gap-1 sm:gap-2">
           {navLinks.map((link) => (
             <NavLink
               key={link.to}
               to={link.to}
+              end={link.to === '/'}
               className={({ isActive }) =>
                 `w-full flex items-center justify-center gap-1 sm:gap-1.5 py-1.5 px-1 sm:px-3 rounded text-[11px] sm:text-xs font-mono font-medium transition-colors text-center text-decoration-none ${
                   isActive
@@ -144,7 +118,7 @@ export function Navbar() {
       </div>
 
       {/* SUB-BAR BELOW HEADER: IST TIME TICKER */}
-      <div className="header-ist-subbar border-t border-b border-white/10 bg-black/60 backdrop-blur-md px-3 sm:px-6 py-1 font-mono text-[10px]">
+      <div className="header-ist-subbar border-b border-white/10 bg-black/80 backdrop-blur-md px-3 sm:px-6 py-1 font-mono text-[10px]">
         <div className="max-w-xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-1.5 text-neutral-400">
             <span className="w-1.5 h-1.5 rounded-full bg-[var(--g-emerald)] shadow-[0_0_6px_var(--g-emerald)] animate-pulse" />

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { usePortfolio, getYoutubeEmbedUrl } from '../context/PortfolioContext';
 import { compressImage } from '../lib/imageCompressor';
 import { SUPABASE_SETUP_SQL } from '../lib/cloudSync';
-import type { ProjectItem, MaterialItem, JourneyItem, SocialLink } from '../types';
+import type { ProjectItem, MaterialItem, JourneyItem, SocialLink, BlogPost } from '../types';
 
 export default function Admin() {
   const {
@@ -18,6 +18,12 @@ export default function Admin() {
     addMaterial,
     deleteMaterial,
     moveMaterial,
+    portalConfig,
+    updatePortalConfig,
+    blogPosts,
+    addBlogPost,
+    updateBlogPost,
+    deleteBlogPost,
     skills,
     updateSkills,
     journey,
@@ -105,7 +111,7 @@ export default function Admin() {
 
   // Active Tab
   const [activeTab, setActiveTab] = useState<
-    'vcard' | 'socials' | 'projects' | 'materials' | 'videos' | 'skills' | 'journey' | 'telemetry'
+    'vcard' | 'socials' | 'portals' | 'blog' | 'projects' | 'materials' | 'videos' | 'skills' | 'journey' | 'telemetry'
   >('vcard');
 
   // Local Profile Draft
@@ -113,6 +119,23 @@ export default function Admin() {
   const [socialsDraft, setSocialsDraft] = useState<SocialLink[]>([
     ...(profile.socials || [])
   ]);
+
+  // Local Portal & Project Radar Draft
+  const [portalDraft, setPortalDraft] = useState({
+    workDesc: portalConfig?.workDesc || '',
+    materialsDesc: portalConfig?.materialsDesc || '',
+    aboutDesc: portalConfig?.aboutDesc || '',
+    flashedProjectIds: portalConfig?.flashedProjectIds || []
+  });
+
+  // Blog Posts Draft / Form State
+  const [newBlogTitle, setNewBlogTitle] = useState('');
+  const [newBlogTag, setNewBlogTag] = useState('SYSTEMS');
+  const [newBlogReadTime, setNewBlogReadTime] = useState('3 MIN READ');
+  const [newBlogSummary, setNewBlogSummary] = useState('');
+  const [newBlogContent, setNewBlogContent] = useState('');
+  const [editingBlogId, setEditingBlogId] = useState<string | null>(null);
+  const [postToDelete, setPostToDelete] = useState<BlogPost | null>(null);
 
   // Featured YouTube Videos Draft (allows pasting 2-3 links directly)
   const [videosDraft, setVideosDraft] = useState<string[]>(() => {
@@ -246,6 +269,73 @@ export default function Admin() {
     const cleanVideos = videosDraft.map((v) => v.trim()).filter(Boolean);
     updateYoutubeVideos(cleanVideos);
     showToast('✓ Featured YouTube video showcase saved!');
+  };
+
+  // Handle Portals & Project Radar Save
+  const handleSavePortals = (e: FormEvent) => {
+    e.preventDefault();
+    updatePortalConfig(portalDraft);
+    showToast('✓ Portal descriptions and project radar saved!');
+  };
+
+  const handleToggleFlashProject = (projectId: string) => {
+    setPortalDraft((prev) => {
+      const current = prev.flashedProjectIds || [];
+      const exists = current.includes(projectId);
+      const next = exists ? current.filter((id) => id !== projectId) : [...current, projectId];
+      return { ...prev, flashedProjectIds: next };
+    });
+  };
+
+  // Handle Blog Post Submit
+  const handleSaveBlogPost = (e: FormEvent) => {
+    e.preventDefault();
+    if (!newBlogTitle.trim() || !newBlogContent.trim()) {
+      showToast('Please enter both title and content for the dispatch.');
+      return;
+    }
+    if (editingBlogId) {
+      updateBlogPost(editingBlogId, {
+        title: newBlogTitle.trim(),
+        tag: newBlogTag.trim() || 'SYSTEMS',
+        readTime: newBlogReadTime.trim() || '3 MIN READ',
+        summary: newBlogSummary.trim(),
+        content: newBlogContent.trim()
+      });
+      setEditingBlogId(null);
+    } else {
+      addBlogPost({
+        title: newBlogTitle.trim(),
+        tag: newBlogTag.trim() || 'SYSTEMS',
+        readTime: newBlogReadTime.trim() || '3 MIN READ',
+        date: new Date().toISOString().split('T')[0],
+        summary: newBlogSummary.trim(),
+        content: newBlogContent.trim(),
+        published: true
+      });
+    }
+    setNewBlogTitle('');
+    setNewBlogSummary('');
+    setNewBlogContent('');
+    setNewBlogReadTime('3 MIN READ');
+  };
+
+  const handleStartEditBlog = (post: BlogPost) => {
+    setEditingBlogId(post.id);
+    setNewBlogTitle(post.title);
+    setNewBlogTag(post.tag);
+    setNewBlogReadTime(post.readTime || '3 MIN READ');
+    setNewBlogSummary(post.summary);
+    setNewBlogContent(post.content);
+    window.scrollTo({ top: 300, behavior: 'smooth' });
+  };
+
+  const handleCancelEditBlog = () => {
+    setEditingBlogId(null);
+    setNewBlogTitle('');
+    setNewBlogSummary('');
+    setNewBlogContent('');
+    setNewBlogReadTime('3 MIN READ');
   };
 
   // Handle Socials Save
@@ -737,12 +827,14 @@ export default function Admin() {
         {[
           { key: 'vcard', label: '1. Profile & Bio' },
           { key: 'socials', label: '2. Social Media Links' },
-          { key: 'projects', label: '3. Projects Catalog' },
-          { key: 'materials', label: '4. Study Vault' },
-          { key: 'videos', label: '5. Featured Videos' },
-          { key: 'skills', label: '6. Technical Stack' },
-          { key: 'journey', label: '7. Journey & Education' },
-          { key: 'telemetry', label: '8. Header, Footer & Passcode' }
+          { key: 'portals', label: '3. Portals & Radar' },
+          { key: 'blog', label: '4. Dispatches & Blog' },
+          { key: 'projects', label: '5. Projects Catalog' },
+          { key: 'materials', label: '6. Study Vault' },
+          { key: 'videos', label: '7. Ambient Video' },
+          { key: 'skills', label: '8. Technical Stack' },
+          { key: 'journey', label: '9. Journey & Education' },
+          { key: 'telemetry', label: '10. Header, Footer & Passcode' }
         ].map((tab) => (
           <button
             key={tab.key}
@@ -1145,7 +1237,309 @@ export default function Admin() {
       )}
 
       {/* =========================================================================
-          TAB 3: PROJECTS CATALOG
+          TAB: PORTALS DIRECTORY & PROJECT RADAR
+          ========================================================================= */}
+      {activeTab === 'portals' && (
+        <form onSubmit={handleSavePortals} className="space-y-6">
+          <div className="p-6 sm:p-8 rounded-lg bg-[var(--g-frame)] border border-[var(--g-border-solid)] space-y-6">
+            <div className="border-b border-[var(--g-border)] pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <span className="unit-badge-tag text-[9px]">PORTALS & SHOWCASE RADAR</span>
+                <h2 className="font-display text-2xl font-black text-white uppercase mt-1">
+                  Portal Descriptions & Flashed Projects
+                </h2>
+                <p className="text-xs text-[var(--g-muted)] font-mono mt-1">
+                  Customize the descriptive text for the 3 main portals, and pick which projects cycle on the live Project Radar showcase window.
+                </p>
+              </div>
+              <button type="submit" className="btn-green-glass btn-highlight text-xs py-2 px-5 shrink-0">
+                SAVE PORTALS & RADAR
+              </button>
+            </div>
+
+            <div className="space-y-5 font-mono text-xs">
+              <div className="space-y-2">
+                <label className="text-[var(--g-emerald)] uppercase font-bold block">
+                  Work & Projects Portal Description
+                </label>
+                <textarea
+                  rows={2}
+                  value={portalDraft.workDesc}
+                  onChange={(e) => setPortalDraft({ ...portalDraft, workDesc: e.target.value })}
+                  placeholder="e.g. Interactive engineering portfolio, production web systems, and system utilities."
+                  className="form-entry"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[var(--g-emerald)] uppercase font-bold block">
+                  Study Materials Portal Description
+                </label>
+                <textarea
+                  rows={2}
+                  value={portalDraft.materialsDesc}
+                  onChange={(e) => setPortalDraft({ ...portalDraft, materialsDesc: e.target.value })}
+                  placeholder="e.g. Curated technical packages, engineering notes, and toolchains."
+                  className="form-entry"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[var(--g-emerald)] uppercase font-bold block">
+                  About & Journey Portal Description
+                </label>
+                <textarea
+                  rows={2}
+                  value={portalDraft.aboutDesc}
+                  onChange={(e) => setPortalDraft({ ...portalDraft, aboutDesc: e.target.value })}
+                  placeholder="e.g. 25-skill technical stack, academic engineering timeline, and background."
+                  className="form-entry"
+                />
+              </div>
+            </div>
+
+            {/* PROJECT RADAR SELECTION */}
+            <div className="pt-4 border-t border-[var(--g-border)] space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-display text-lg font-bold text-white uppercase">
+                    Select Projects Flashed on Radar Window
+                  </h3>
+                  <p className="text-xs text-[var(--g-muted)] font-mono">
+                    Click any project below to toggle it on or off from the home page radar flash display.
+                  </p>
+                </div>
+                <span className="text-xs font-mono text-[var(--g-neon-flash)] font-bold">
+                  {(portalDraft.flashedProjectIds || []).length} SELECTED
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-2">
+                {projects.map((p) => {
+                  const isSelected = (portalDraft.flashedProjectIds || []).includes(p.id);
+                  return (
+                    <div
+                      key={p.id}
+                      onClick={() => handleToggleFlashProject(p.id)}
+                      className={`p-3.5 rounded-lg border cursor-pointer transition-all select-none font-mono text-xs ${
+                        isSelected
+                          ? 'bg-[rgba(255,122,0,0.18)] border-[var(--g-emerald)] shadow-[0_0_12px_rgba(255,122,0,0.25)]'
+                          : 'bg-black/40 border-white/10 hover:border-white/30 text-neutral-400'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="unit-badge-tag text-[8px] uppercase">{p.category}</span>
+                        <span className={`text-[10px] font-bold ${isSelected ? 'text-[var(--g-neon-flash)]' : 'text-neutral-500'}`}>
+                          {isSelected ? '● FLASHING' : '○ EXCLUDED'}
+                        </span>
+                      </div>
+                      <h4 className="font-display font-bold text-sm text-white truncate">{p.title}</h4>
+                      <p className="text-[11px] text-neutral-400 line-clamp-2 mt-1">{p.desc}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </form>
+      )}
+
+      {/* =========================================================================
+          TAB: TERMINAL DISPATCHES & BLOG JOURNAL
+          ========================================================================= */}
+      {activeTab === 'blog' && (
+        <div className="space-y-8">
+          <form onSubmit={handleSaveBlogPost} className="p-6 sm:p-8 rounded-lg bg-[var(--g-frame)] border border-[var(--g-border-solid)] space-y-5">
+            <div className="border-b border-[var(--g-border)] pb-3 flex items-center justify-between">
+              <div>
+                <span className="unit-badge-tag text-[9px]">EDITORIAL CMS</span>
+                <h2 className="font-display text-2xl font-black text-white uppercase mt-1">
+                  {editingBlogId ? 'Edit Terminal Dispatch' : '+ Publish New Dispatch / Post'}
+                </h2>
+              </div>
+              {editingBlogId && (
+                <button
+                  type="button"
+                  onClick={handleCancelEditBlog}
+                  className="btn-green-glass text-xs py-1.5 px-3 text-neutral-400 hover:text-white"
+                >
+                  CANCEL EDIT
+                </button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 font-mono text-xs">
+              <div className="space-y-1 md:col-span-2">
+                <label className="text-[var(--g-emerald)] uppercase block">Dispatch Title *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Building Minimal Linux Kernels & Microsecond Engines"
+                  value={newBlogTitle}
+                  onChange={(e) => setNewBlogTitle(e.target.value)}
+                  className="form-entry"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[var(--g-emerald)] uppercase block">Category / Tag</label>
+                <input
+                  type="text"
+                  placeholder="e.g. SYSTEMS, DEVLOG, ARCHITECTURE"
+                  value={newBlogTag}
+                  onChange={(e) => setNewBlogTag(e.target.value)}
+                  className="form-entry"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[var(--g-emerald)] uppercase block">Estimated Read Time</label>
+                <input
+                  type="text"
+                  placeholder="3 MIN READ"
+                  value={newBlogReadTime}
+                  onChange={(e) => setNewBlogReadTime(e.target.value)}
+                  className="form-entry"
+                />
+              </div>
+
+              <div className="space-y-1 md:col-span-2">
+                <label className="text-[var(--g-emerald)] uppercase block">Summary / Subtitle (Shown on card)</label>
+                <input
+                  type="text"
+                  placeholder="Brief 1-2 sentence teaser for readers..."
+                  value={newBlogSummary}
+                  onChange={(e) => setNewBlogSummary(e.target.value)}
+                  className="form-entry"
+                />
+              </div>
+
+              <div className="space-y-1 md:col-span-3">
+                <label className="text-[var(--g-emerald)] uppercase block">Full Dispatch Content (Markdown & Text) *</label>
+                <textarea
+                  rows={8}
+                  required
+                  placeholder="Write the full post here. Paragraph breaks and markdown formatting are preserved..."
+                  value={newBlogContent}
+                  onChange={(e) => setNewBlogContent(e.target.value)}
+                  className="form-entry"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button type="submit" className="btn-green-glass btn-highlight py-2 px-6 font-bold text-xs font-mono">
+                {editingBlogId ? 'SAVE CHANGES TO DISPATCH' : 'PUBLISH DISPATCH'}
+              </button>
+              {editingBlogId && (
+                <button
+                  type="button"
+                  onClick={handleCancelEditBlog}
+                  className="btn-green-glass py-2 px-4 text-xs font-mono text-neutral-300"
+                >
+                  CANCEL
+                </button>
+              )}
+            </div>
+          </form>
+
+          {/* List Existing Blog Posts */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-display text-2xl font-black text-white uppercase">
+                Published Dispatches ({blogPosts.length})
+              </h3>
+              <span className="font-mono text-xs text-[var(--g-muted)]">
+                Manage, edit, or delete live field notes
+              </span>
+            </div>
+
+            {blogPosts.length === 0 ? (
+              <div className="p-8 text-center font-mono text-xs text-neutral-500 border border-dashed border-white/10 rounded-lg">
+                NO DISPATCHES PUBLISHED YET. USE THE FORM ABOVE TO WRITE YOUR FIRST POST.
+              </div>
+            ) : (
+              blogPosts.map((post) => (
+                <div
+                  key={post.id}
+                  className="p-5 rounded-lg bg-[var(--g-frame)] border border-[var(--g-border-solid)] flex flex-col md:flex-row md:items-center justify-between gap-4"
+                >
+                  <div className="space-y-1.5 max-w-2xl font-mono text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="unit-badge-tag text-[9px]">{post.tag || 'SYSTEMS'}</span>
+                      <span className="text-[var(--g-muted)]">{post.date}</span>
+                      <span className="text-[var(--g-neon-flash)]">{post.readTime || '3 MIN READ'}</span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded border ${
+                        post.published !== false
+                          ? 'border-emerald-500/50 text-emerald-400 bg-emerald-950/30'
+                          : 'border-yellow-500/50 text-yellow-400 bg-yellow-950/30'
+                      }`}>
+                        {post.published !== false ? 'PUBLISHED' : 'DRAFT'}
+                      </span>
+                    </div>
+                    <h4 className="font-display text-xl font-bold text-white pt-0.5">{post.title}</h4>
+                    <p className="text-[var(--g-muted)] line-clamp-2 leading-relaxed">{post.summary || post.content}</p>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => handleStartEditBlog(post)}
+                      className="px-3 py-1.5 rounded bg-white/5 border border-white/10 hover:bg-white/15 text-white font-mono text-xs font-bold"
+                    >
+                      EDIT
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPostToDelete(post)}
+                      className="px-3 py-1.5 rounded bg-red-950/60 border border-red-800 text-red-400 hover:text-white font-mono text-xs font-bold"
+                    >
+                      DELETE
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* BLOG POST DELETION CONFIRMATION MODAL */}
+      {postToDelete && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-xl bg-[var(--g-frame)] border border-red-500/60 p-6 space-y-4 shadow-2xl font-mono text-xs animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center gap-2 text-red-400">
+              <span className="text-xl">🗑️</span>
+              <h3 className="font-display text-lg font-bold uppercase text-white">Delete Dispatch</h3>
+            </div>
+            <p className="text-neutral-300 leading-relaxed">
+              Are you sure you want to permanently delete <strong className="text-white font-bold">"{postToDelete.title}"</strong>?
+            </p>
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setPostToDelete(null)}
+                className="py-2 px-3 rounded bg-white/5 border border-white/10 hover:bg-white/10 text-neutral-300 font-mono"
+              >
+                CANCEL
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  deleteBlogPost(postToDelete.id);
+                  setPostToDelete(null);
+                }}
+                className="py-2 px-4 rounded bg-red-600 hover:bg-red-500 text-white font-bold transition-colors font-mono"
+              >
+                CONFIRM DELETE
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          TAB 5: PROJECTS CATALOG
           ========================================================================= */}
       {activeTab === 'projects' && (
         <div className="space-y-8">

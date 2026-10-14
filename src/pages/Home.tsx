@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { usePortfolio, getYoutubeEmbedUrl } from '../context/PortfolioContext';
+import type { BlogPost } from '../types';
 
 function getPlatformIcon(platform: string) {
   const p = platform.toLowerCase();
@@ -54,12 +55,42 @@ function getPlatformIcon(platform: string) {
 }
 
 export default function Home() {
-  const { profile, headerConfig, youtubeVideos, showToast } = usePortfolio();
+  const {
+    profile,
+    headerConfig,
+    youtubeVideos,
+    projects,
+    portalConfig,
+    blogPosts,
+    showToast
+  } = usePortfolio();
 
   const chassisRef = useRef<HTMLDivElement | null>(null);
   const flipperRef = useRef<HTMLDivElement | null>(null);
   const [isFlipped, setIsFlipped] = useState(false);
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
+  const [readingPost, setReadingPost] = useState<BlogPost | null>(null);
+
+  // Flashed projects showcase selection & rotating interval
+  const flashedProjects = useMemo(() => {
+    if (portalConfig?.flashedProjectIds && portalConfig.flashedProjectIds.length > 0) {
+      const selected = projects.filter((p) => portalConfig.flashedProjectIds?.includes(p.id));
+      if (selected.length > 0) return selected;
+    }
+    return projects.slice(0, 5);
+  }, [projects, portalConfig?.flashedProjectIds]);
+
+  const [flashedIdx, setFlashedIdx] = useState(0);
+
+  useEffect(() => {
+    if (flashedProjects.length <= 1) return;
+    const interval = setInterval(() => {
+      setFlashedIdx((prev) => (prev + 1) % flashedProjects.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [flashedProjects.length]);
+
+  const activeFlashedProject = flashedProjects[flashedIdx] || projects[0];
 
   // 3D gyroscopic tilt tracking (disabled on touch devices for mobile stability)
   useEffect(() => {
@@ -349,79 +380,192 @@ export default function Home() {
         </section>
       )}
 
-      {/* PORTALS DIRECTORY SECTION [01] */}
+      {/* PORTALS DIRECTORY SECTION [01]: VERTICAL MENU + FLASH SHOWCASE WINDOW */}
       <section className="space-y-4 pt-2">
-        <div className="section-mini-header">
+        <div className="section-mini-header flex items-center justify-between">
           <h2>[01] Explore Directory & Portals</h2>
           <span className="font-mono text-[10px] sm:text-[11px] text-[var(--g-muted)] uppercase">
-            ARCHITECTURAL PAGES
+            ARCHITECTURAL PORTALS & RADAR
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* PORTAL CARD 1: WORK & PROJECTS */}
-          <Link
-            to="/work"
-            className="group p-5 sm:p-6 rounded-lg bg-[var(--g-frame)] border border-[var(--g-border-solid)] hover:border-[var(--g-emerald)] transition-all flex flex-col justify-between text-decoration-none shadow-lg hover:-translate-y-1"
-          >
-            <div className="space-y-2.5">
-              <span className="unit-badge-tag text-[9px]">CATALOG DECK</span>
-              <h3 className="font-display text-xl sm:text-2xl font-black text-white group-hover:text-[var(--g-neon-flash)] transition-colors">
-                Work & Projects ↗
-              </h3>
-              <p className="text-xs text-[var(--g-muted)] leading-relaxed">
-                Alpine Linux live ISOs, luxury real estate editorial brochures, microsecond automation engines, and modern web apps.
-              </p>
-            </div>
-            <div className="mt-4 pt-3 border-t border-[var(--g-border)] flex items-center justify-between text-[11px] font-mono text-[var(--g-emerald)]">
-              <span>EXPLORE DECK</span>
-              <span>→</span>
-            </div>
-          </Link>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
+          {/* LEFT: VERTICAL MENU OF 3 ARCHITECTURAL PAGES */}
+          <div className="lg:col-span-5 flex flex-col gap-3">
+            {/* PORTAL 1: WORK & PROJECTS */}
+            <Link
+              to="/work"
+              className="group p-4 sm:p-5 rounded-lg bg-[var(--g-frame)] border border-[var(--g-border-solid)] hover:border-[var(--g-emerald)] transition-all flex flex-col justify-between text-decoration-none shadow-md hover:-translate-y-0.5"
+            >
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="unit-badge-tag text-[9px]">CATALOG DECK</span>
+                  <span className="text-xs font-mono text-[var(--g-emerald)] group-hover:translate-x-1 transition-transform">
+                    EXPLORE →
+                  </span>
+                </div>
+                <h3 className="font-display text-lg sm:text-xl font-black text-white group-hover:text-[var(--g-neon-flash)] transition-colors">
+                  Work & Projects ↗
+                </h3>
+                <p className="text-xs text-[var(--g-muted)] leading-relaxed">
+                  {portalConfig?.workDesc || 'Interactive engineering portfolio, production web systems, and system utilities.'}
+                </p>
+              </div>
+            </Link>
 
-          {/* PORTAL CARD 2: STUDY VAULT */}
-          <Link
-            to="/materials"
-            className="group p-5 sm:p-6 rounded-lg bg-[var(--g-frame)] border border-[var(--g-border-solid)] hover:border-[var(--g-emerald)] transition-all flex flex-col justify-between text-decoration-none shadow-lg hover:-translate-y-1"
-          >
-            <div className="space-y-2.5">
-              <span className="unit-badge-tag text-[9px]">DOWNLOAD VAULT</span>
-              <h3 className="font-display text-xl sm:text-2xl font-black text-white group-hover:text-[var(--g-neon-flash)] transition-colors">
-                Study Materials ↗
-              </h3>
-              <p className="text-xs text-[var(--g-muted)] leading-relaxed">
-                Curated lecture decks, algorithms & DSA revision notes, Alpine ISO build scripts, and vector UI starter packs.
-              </p>
-            </div>
-            <div className="mt-4 pt-3 border-t border-[var(--g-border)] flex items-center justify-between text-[11px] font-mono text-[var(--g-emerald)]">
-              <span>ACCESS VAULT</span>
-              <span>→</span>
-            </div>
-          </Link>
+            {/* PORTAL 2: STUDY VAULT */}
+            <Link
+              to="/materials"
+              className="group p-4 sm:p-5 rounded-lg bg-[var(--g-frame)] border border-[var(--g-border-solid)] hover:border-[var(--g-emerald)] transition-all flex flex-col justify-between text-decoration-none shadow-md hover:-translate-y-0.5"
+            >
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="unit-badge-tag text-[9px]">DOWNLOAD VAULT</span>
+                  <span className="text-xs font-mono text-[var(--g-emerald)] group-hover:translate-x-1 transition-transform">
+                    ACCESS →
+                  </span>
+                </div>
+                <h3 className="font-display text-lg sm:text-xl font-black text-white group-hover:text-[var(--g-neon-flash)] transition-colors">
+                  Study Materials ↗
+                </h3>
+                <p className="text-xs text-[var(--g-muted)] leading-relaxed">
+                  {portalConfig?.materialsDesc || 'Curated technical packages, engineering notes, and toolchains.'}
+                </p>
+              </div>
+            </Link>
 
-          {/* PORTAL CARD 3: ABOUT & ARMORY */}
-          <Link
-            to="/about"
-            className="group p-5 sm:p-6 rounded-lg bg-[var(--g-frame)] border border-[var(--g-border-solid)] hover:border-[var(--g-emerald)] transition-all flex flex-col justify-between text-decoration-none shadow-lg hover:-translate-y-1"
-          >
-            <div className="space-y-2.5">
-              <span className="unit-badge-tag text-[9px]">PROFILE & ARMORY</span>
-              <h3 className="font-display text-xl sm:text-2xl font-black text-white group-hover:text-[var(--g-neon-flash)] transition-colors">
-                About & Journey ↗
-              </h3>
-              <p className="text-xs text-[var(--g-muted)] leading-relaxed">
-                The full 25-Skill Armory, academic engineering timeline, creative philosophies, and milestones.
-              </p>
+            {/* PORTAL 3: ABOUT & JOURNEY */}
+            <Link
+              to="/about"
+              className="group p-4 sm:p-5 rounded-lg bg-[var(--g-frame)] border border-[var(--g-border-solid)] hover:border-[var(--g-emerald)] transition-all flex flex-col justify-between text-decoration-none shadow-md hover:-translate-y-0.5"
+            >
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="unit-badge-tag text-[9px]">PROFILE & ARMORY</span>
+                  <span className="text-xs font-mono text-[var(--g-emerald)] group-hover:translate-x-1 transition-transform">
+                    VIEW →
+                  </span>
+                </div>
+                <h3 className="font-display text-lg sm:text-xl font-black text-white group-hover:text-[var(--g-neon-flash)] transition-colors">
+                  About & Journey ↗
+                </h3>
+                <p className="text-xs text-[var(--g-muted)] leading-relaxed">
+                  {portalConfig?.aboutDesc || '25-skill technical stack, academic engineering timeline, and background.'}
+                </p>
+              </div>
+            </Link>
+          </div>
+
+          {/* RIGHT: FLASHING SHOWCASE WINDOW (PROJECT RADAR) */}
+          <div className="lg:col-span-7 rounded-xl bg-black/60 border border-[var(--g-border-solid)] p-5 sm:p-6 flex flex-col justify-between shadow-2xl relative overflow-hidden group">
+            {/* Top scanning header */}
+            <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-4 font-mono text-xs">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[var(--g-emerald)] shadow-[0_0_8px_var(--g-emerald)] animate-pulse" />
+                <span className="text-[var(--g-neon-flash)] font-bold tracking-wider uppercase">
+                  [RADAR // PROJECT FLASH DISPLAY]
+                </span>
+              </div>
+              {flashedProjects.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-neutral-400">
+                    0{flashedIdx + 1} / 0{flashedProjects.length}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setFlashedIdx((prev) => (prev - 1 + flashedProjects.length) % flashedProjects.length)}
+                    className="p-1 rounded bg-white/5 hover:bg-white/10 text-neutral-300 hover:text-white transition-colors"
+                    title="Previous project"
+                  >
+                    ←
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFlashedIdx((prev) => (prev + 1) % flashedProjects.length)}
+                    className="p-1 rounded bg-white/5 hover:bg-white/10 text-neutral-300 hover:text-white transition-colors"
+                    title="Next project"
+                  >
+                    →
+                  </button>
+                </div>
+              )}
             </div>
-            <div className="mt-4 pt-3 border-t border-[var(--g-border)] flex items-center justify-between text-[11px] font-mono text-[var(--g-emerald)]">
-              <span>VIEW ARMORY</span>
-              <span>→</span>
+
+            {/* Active Flashed Project Card */}
+            {activeFlashedProject ? (
+              <div className="space-y-4 my-auto">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="unit-badge-tag text-[9px] uppercase tracking-wider">
+                    {activeFlashedProject.badge || 'FEATURED'}
+                  </span>
+                  <span className="text-[10px] font-mono text-[var(--g-emerald)] uppercase">
+                    // {activeFlashedProject.category}
+                  </span>
+                </div>
+
+                <h4 className="font-display text-2xl sm:text-3xl font-black text-white group-hover:text-[var(--g-neon-flash)] transition-colors leading-tight">
+                  {activeFlashedProject.title}
+                </h4>
+
+                <p className="text-xs sm:text-sm text-neutral-300 font-sans leading-relaxed line-clamp-3">
+                  {activeFlashedProject.desc}
+                </p>
+
+                {activeFlashedProject.tags && activeFlashedProject.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {activeFlashedProject.tags.map((tag, tIdx) => (
+                      <span
+                        key={tIdx}
+                        className="text-[10px] font-mono text-neutral-300 bg-white/5 border border-white/10 rounded px-2 py-0.5"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="my-auto text-center font-mono text-xs text-[var(--g-muted)] py-8">
+                SCANNING CHANNELS... NO ACTIVE PROJECTS MARKED FOR RADAR.
+              </div>
+            )}
+
+            {/* Bottom Actions */}
+            <div className="mt-5 pt-3 border-t border-white/10 flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
+              <div className="flex items-center gap-3">
+                {activeFlashedProject?.liveUrl && (
+                  <a
+                    href={activeFlashedProject.liveUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[var(--g-neon-flash)] hover:underline font-bold"
+                  >
+                    LIVE DEMO ↗
+                  </a>
+                )}
+                {activeFlashedProject?.githubUrl && (
+                  <a
+                    href={activeFlashedProject.githubUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-neutral-300 hover:text-white underline"
+                  >
+                    SOURCE CODE ↗
+                  </a>
+                )}
+              </div>
+              <Link
+                to="/work"
+                className="btn-green-glass py-1.5 px-3 text-[11px] text-decoration-none"
+              >
+                VIEW ALL PROJECTS ↗
+              </Link>
             </div>
-          </Link>
+          </div>
         </div>
       </section>
 
-      {/* SLEEK MINIMAL SOCIAL NETWORKS HUB [02] */}
+      {/* SLEEK VERTICAL SOCIAL NETWORKS HUB & EXPANSION VOID [02] */}
       <section className="space-y-4 pt-2">
         <div className="section-mini-header flex items-center justify-between">
           <h2>[02] Social Networks & Transformation Hub</h2>
@@ -430,70 +574,217 @@ export default function Home() {
           </span>
         </div>
 
-        {/* Minimal Social Links Grid with Icon + Clickable Link beside it */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {profile.socials && profile.socials.map((social) => (
-            <a
-              key={social.id}
-              href={social.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-3 sm:p-3.5 rounded-lg bg-[var(--g-frame)] border border-[var(--g-border-solid)] hover:border-[var(--g-emerald)] hover:bg-[rgba(255,122,0,0.12)] transition-all flex items-center justify-between group text-decoration-none shadow-md"
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-8 h-8 rounded-md bg-[rgba(255,255,255,0.06)] border border-white/10 flex items-center justify-center text-[var(--g-neon-flash)] group-hover:scale-110 group-hover:text-[var(--g-emerald)] transition-all shrink-0">
-                  {getPlatformIcon(social.platform)}
-                </div>
-                <div className="min-w-0 flex flex-col">
-                  <span className="text-[10px] font-mono text-[var(--g-muted)] uppercase tracking-wider">
-                    {social.platform}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
+          {/* LEFT: VERTICAL SOCIAL MENU */}
+          <div className="lg:col-span-6 flex flex-col gap-2">
+            {profile.socials && profile.socials.length > 0 ? (
+              profile.socials.map((social) => (
+                <a
+                  key={social.id}
+                  href={social.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-3 rounded-lg bg-[var(--g-frame)] border border-[var(--g-border-solid)] hover:border-[var(--g-emerald)] hover:bg-[rgba(255,122,0,0.12)] transition-all flex items-center justify-between group text-decoration-none shadow-md"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-8 h-8 rounded-md bg-[rgba(255,255,255,0.06)] border border-white/10 flex items-center justify-center text-[var(--g-neon-flash)] group-hover:scale-110 group-hover:text-[var(--g-emerald)] transition-all shrink-0">
+                      {getPlatformIcon(social.platform)}
+                    </div>
+                    <div className="min-w-0 flex flex-col">
+                      <span className="text-[10px] font-mono text-[var(--g-muted)] uppercase tracking-wider">
+                        {social.platform}
+                      </span>
+                      <span className="font-mono text-xs text-white group-hover:text-[var(--g-neon-flash)] font-bold truncate">
+                        {social.handle || social.url.replace(/^https?:\/\/(www\.)?/, '')}
+                      </span>
+                    </div>
+                  </div>
+                  <span className="text-xs font-mono text-[var(--g-muted)] group-hover:text-[var(--g-neon-flash)] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform shrink-0 ml-2">
+                    ↗
                   </span>
-                  <span className="font-mono text-xs text-white group-hover:text-[var(--g-neon-flash)] font-bold truncate">
-                    {social.handle || social.url.replace(/^https?:\/\/(www\.)?/, '')}
-                  </span>
-                </div>
+                </a>
+              ))
+            ) : (
+              <div className="p-4 rounded-lg bg-[var(--g-frame)] border border-[var(--g-border-solid)] font-mono text-xs text-[var(--g-muted)]">
+                NO SOCIAL CHANNELS LINKED.
               </div>
-              <span className="text-xs font-mono text-[var(--g-muted)] group-hover:text-[var(--g-neon-flash)] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform shrink-0 ml-2">
-                ↗
-              </span>
-            </a>
-          ))}
+            )}
+          </div>
+
+          {/* RIGHT: RESERVED VOID BLACK SPACE FOR FUTURE INTEGRATIONS */}
+          <div className="lg:col-span-6 min-h-[160px] rounded-xl bg-black/60 border border-white/10 flex flex-col items-center justify-center p-6 text-center relative overflow-hidden group">
+            <div className="absolute inset-0 bg-[radial-gradient(#262626_1px,transparent_1px)] [background-size:16px_16px] opacity-40 pointer-events-none" />
+            <div className="relative z-10 space-y-2">
+              <div className="flex items-center justify-center gap-2 text-[10px] font-mono text-[var(--g-neon-flash)]">
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--g-neon-flash)] animate-pulse" />
+                <span>[BAY 02 // RESERVED VOID]</span>
+              </div>
+              <p className="text-xs font-mono text-neutral-400 max-w-xs leading-relaxed">
+                FUTURE INTEGRATION STANDBY // EXPANSION MATRIX RESERVED FOR UPCOMING HARDWARE & TELEMETRY
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* YOUTUBE VIDEO SHOWCASE (CMS CONTROLLED, ZERO TEXT LABELS AS REQUESTED) */}
-      {youtubeVideos && youtubeVideos.length > 0 && youtubeVideos.some((v) => getYoutubeEmbedUrl(v)) && (
+      {/* AMBIENT CONTINUOUS PLAIN VIDEO SHOWCASE (CMS CONTROLLED, UNINTERRUPTIBLE, ZERO ADS/CONTROLS) */}
+      {youtubeVideos && youtubeVideos.length > 0 && (
         <section className="pt-2">
           <div
             className={`grid grid-cols-1 ${
-              youtubeVideos.filter((v) => getYoutubeEmbedUrl(v)).length === 1
+              youtubeVideos.length === 1
                 ? 'max-w-2xl mx-auto'
-                : youtubeVideos.filter((v) => getYoutubeEmbedUrl(v)).length === 2
+                : youtubeVideos.length === 2
                 ? 'md:grid-cols-2'
                 : 'md:grid-cols-2 lg:grid-cols-3'
             } gap-4`}
           >
             {youtubeVideos.map((videoUrl, idx) => {
-              const embedUrl = getYoutubeEmbedUrl(videoUrl);
-              if (!embedUrl) return null;
+              if (!videoUrl || !videoUrl.trim()) return null;
+              const direct = /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(videoUrl.trim());
+              const embedUrl = direct ? null : getYoutubeEmbedUrl(videoUrl, true);
+              if (!direct && !embedUrl) return null;
+
               return (
                 <div
                   key={idx}
-                  className="relative aspect-video rounded-xl overflow-hidden bg-black/80 border border-[var(--g-border-solid)] shadow-xl hover:border-[var(--g-emerald)] transition-all group"
+                  className="relative aspect-video rounded-xl overflow-hidden bg-black border border-[var(--g-border-solid)] shadow-2xl select-none group"
                 >
-                    <iframe
-                      src={embedUrl}
-                      title={`Featured Video ${idx + 1}`}
-                      className="w-full h-full border-0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                      allowFullScreen
-                      loading="eager"
-                    />
+                  {/* Plain continuous ambient playback wrapper */}
+                  <div className="absolute inset-0 pointer-events-none scale-[1.3] transform-gpu flex items-center justify-center overflow-hidden">
+                    {direct ? (
+                      <video
+                        src={videoUrl}
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        className="w-full h-full object-cover pointer-events-none"
+                      />
+                    ) : (
+                      <iframe
+                        src={embedUrl!}
+                        title={`Ambient Stream ${idx + 1}`}
+                        className="w-full h-full border-0 pointer-events-none"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        tabIndex={-1}
+                      />
+                    )}
+                  </div>
+                  {/* Click shield: prevents stopping or interacting with player */}
+                  <div
+                    className="absolute inset-0 bg-transparent cursor-default pointer-events-auto"
+                    aria-hidden="true"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }}
+                  />
                 </div>
               );
             })}
           </div>
         </section>
+      )}
+
+      {/* FIELD DISPATCHES & BLOG JOURNAL (CMS CONTROLLED POSTS) */}
+      {blogPosts && blogPosts.filter((p) => p.published !== false).length > 0 && (
+        <section className="space-y-4 pt-2">
+          <div className="section-mini-header flex items-center justify-between">
+            <h2>[03] Field Dispatches & Terminal Journal</h2>
+            <span className="font-mono text-[10px] sm:text-[11px] text-[var(--g-emerald)] uppercase">
+              RECENT LOGS & ESSAYS
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {blogPosts
+              .filter((p) => p.published !== false)
+              .map((post) => (
+                <article
+                  key={post.id}
+                  className="p-5 rounded-lg bg-[var(--g-frame)] border border-[var(--g-border-solid)] hover:border-[var(--g-emerald)] transition-all flex flex-col justify-between shadow-lg group hover:-translate-y-1"
+                >
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between font-mono text-[10px] text-[var(--g-muted)]">
+                      <span className="unit-badge-tag text-[9px]">{post.tag || 'SYSTEMS'}</span>
+                      <span>{post.readTime || '3 MIN READ'}</span>
+                    </div>
+
+                    <h3 className="font-display text-lg sm:text-xl font-black text-white group-hover:text-[var(--g-neon-flash)] transition-colors leading-tight">
+                      {post.title}
+                    </h3>
+
+                    <p className="text-xs text-[var(--g-muted)] leading-relaxed line-clamp-3">
+                      {post.summary}
+                    </p>
+                  </div>
+
+                  <div className="mt-4 pt-3 border-t border-[var(--g-border)] flex items-center justify-between text-[11px] font-mono">
+                    <span className="text-neutral-500">{post.date}</span>
+                    <button
+                      type="button"
+                      onClick={() => setReadingPost(post)}
+                      className="text-[var(--g-neon-flash)] hover:underline font-bold"
+                    >
+                      READ DISPATCH →
+                    </button>
+                  </div>
+                </article>
+              ))}
+          </div>
+        </section>
+      )}
+
+      {/* DISPATCH READING MODAL */}
+      {readingPost && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="w-full max-w-2xl max-h-[85vh] rounded-xl bg-[var(--g-frame)] border border-[var(--g-emerald)] p-6 sm:p-8 flex flex-col shadow-2xl space-y-4 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-start justify-between border-b border-white/10 pb-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 font-mono text-[10px] text-[var(--g-emerald)]">
+                  <span className="unit-badge-tag text-[9px]">{readingPost.tag || 'SYSTEMS'}</span>
+                  <span>●</span>
+                  <span>{readingPost.date}</span>
+                  <span>●</span>
+                  <span>{readingPost.readTime || '3 MIN READ'}</span>
+                </div>
+                <h3 className="font-display text-2xl sm:text-3xl font-black text-white leading-tight">
+                  {readingPost.title}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReadingPost(null)}
+                className="text-neutral-400 hover:text-white text-xl p-1 font-mono"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="overflow-y-auto pr-2 space-y-4 font-sans text-sm text-neutral-300 leading-relaxed max-h-[60vh]">
+              {readingPost.summary && (
+                <p className="font-mono text-xs text-[var(--g-neon-flash)] bg-[rgba(255,122,0,0.08)] border border-[rgba(255,122,0,0.25)] rounded-lg p-3">
+                  {readingPost.summary}
+                </p>
+              )}
+              <div className="whitespace-pre-line text-sm leading-relaxed">
+                {readingPost.content}
+              </div>
+            </div>
+
+            <div className="border-t border-white/10 pt-4 flex items-center justify-between font-mono text-xs">
+              <span className="text-neutral-500">AUTHOR // {profile.fullName}</span>
+              <button
+                type="button"
+                onClick={() => setReadingPost(null)}
+                className="btn-green-glass py-1.5 px-4 font-bold"
+              >
+                CLOSE DISPATCH
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* QR SCANNER MODAL */}

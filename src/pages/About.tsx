@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { usePortfolio } from '../context/PortfolioContext';
 
 export default function About() {
@@ -84,13 +83,6 @@ export default function About() {
               </div>
             </div>
           </div>
-
-          <Link
-            to="/admin"
-            className="btn-green-glass btn-highlight w-full text-center text-xs py-2.5 text-decoration-none"
-          >
-            ⚙ UPDATE BIOGRAPHY IN BACKEND
-          </Link>
         </div>
       </div>
 
