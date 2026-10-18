@@ -1,6 +1,14 @@
 {
   "rewrites": [
     {
+      "source": "/modilinifight",
+      "destination": "/modilinifight/index.html"
+    },
+    {
+      "source": "/modilinifight/:path*",
+      "destination": "/modilinifight/:path*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

@@ -83,6 +83,16 @@ const DEFAULT_PROFILE: ProfileData = {
 
 const DEFAULT_PROJECTS: ProjectItem[] = [
   {
+    id: 'p-fight',
+    title: 'Modilini Fight • 2D Arcade PVP Combat',
+    category: 'code',
+    desc: 'Retro 2D arcade fighting game featuring 29 caricature combatants across 3 factions, dynamic Indian landmark arenas, 14-joint skeletal animation, and Nintendo Joy-Con touch deck controls.',
+    tags: ['React 19', 'TypeScript', 'HTML5 Canvas', 'Tailwind CSS', 'Web Audio API'],
+    githubUrl: 'https://github.com/xom669/MODILINI-FIGHT',
+    liveUrl: 'https://xom669.in/modilinifight',
+    badge: 'PLAYABLE ARCADE'
+  },
+  {
     id: 'p-1',
     title: 'PendriveOS • Custom Alpine Linux Live ISO',
     category: 'systems',
