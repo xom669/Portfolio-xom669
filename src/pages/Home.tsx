@@ -70,6 +70,7 @@ export default function Home() {
   const [isFlipped, setIsFlipped] = useState(false);
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
   const [readingPost, setReadingPost] = useState<BlogPost | null>(null);
+  const [portalTab, setPortalTab] = useState<'games' | 'portals'>('games');
 
   // Flashed projects showcase selection & rotating interval
   const flashedProjects = useMemo(() => {
@@ -388,6 +389,122 @@ export default function Home() {
             ARCHITECTURAL PORTALS & RADAR
           </span>
         </div>
+
+        {/* TOP TAB BAR IN THE EXPLORE DIRECTORY & PORTAL */}
+        <div className="flex flex-wrap items-center gap-2 border-b border-[var(--g-border)] pb-3">
+          <button
+            type="button"
+            onClick={() => setPortalTab('games')}
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-md font-mono text-xs font-bold transition-all cursor-pointer ${
+              portalTab === 'games'
+                ? 'bg-[var(--g-emerald)] text-[var(--g-void)] shadow-[0_0_15px_rgba(0,255,163,0.35)]'
+                : 'bg-[var(--g-frame)] text-[var(--g-offwhite)] hover:border-[var(--g-emerald)] border border-[var(--g-border-solid)]'
+            }`}
+          >
+            <span>🎮</span>
+            <span>RUNNING APPS & GAMES</span>
+            <span
+              className={`text-[9px] px-1.5 py-0.5 rounded font-black ${
+                portalTab === 'games'
+                  ? 'bg-black text-[var(--g-emerald)]'
+                  : 'bg-emerald-500/15 text-[var(--g-neon-flash)] border border-[var(--g-emerald)]'
+              }`}
+            >
+              MODILINI FIGHT
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setPortalTab('portals')}
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-md font-mono text-xs font-bold transition-all cursor-pointer ${
+              portalTab === 'portals'
+                ? 'bg-[var(--g-emerald)] text-[var(--g-void)] shadow-[0_0_15px_rgba(0,255,163,0.35)]'
+                : 'bg-[var(--g-frame)] text-[var(--g-offwhite)] hover:border-[var(--g-emerald)] border border-[var(--g-border-solid)]'
+            }`}
+          >
+            <span>📁</span>
+            <span>ALL DIRECTORY PORTALS</span>
+            <span className="text-[9px] text-[var(--g-muted)]">(4 PORTALS)</span>
+          </button>
+        </div>
+
+        {/* ACTIVE TAB CONTENT: RUNNING APPS & GAMES DEDICATED SHOWCASE */}
+        {portalTab === 'games' && (
+          <div className="p-5 sm:p-7 rounded-xl bg-gradient-to-br from-[var(--g-frame)] via-black to-[#130722] border-2 border-[var(--g-emerald)] shadow-[0_0_25px_rgba(0,255,163,0.18)] relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-96 h-96 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-fuchsia-600/15 via-purple-600/5 to-transparent pointer-events-none" />
+            <div className="relative z-10 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-3">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[var(--g-emerald)] shadow-[0_0_8px_var(--g-emerald)] animate-pulse" />
+                  <span className="font-mono text-xs text-[var(--g-neon-flash)] font-bold tracking-wider uppercase">
+                    ACTIVE RUNNING APP // NEWEST ARCADE RELEASE
+                  </span>
+                </div>
+                <span className="unit-badge-tag text-[9px] bg-emerald-500/15 text-[var(--g-neon-flash)] border border-[var(--g-emerald)]">
+                  v1.2 LATEST VERSION
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-center">
+                <div className="lg:col-span-8 space-y-3">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <h3 className="font-display text-2xl sm:text-4xl font-black text-white tracking-tight">
+                      Modilini Fight
+                    </h3>
+                    <span className="px-2.5 py-1 rounded bg-[rgba(255,122,0,0.18)] border border-[var(--g-emerald)] text-[10px] font-mono text-[var(--g-neon-flash)] font-bold">
+                      2D ARCADE PVP
+                    </span>
+                  </div>
+                  <p className="text-xs sm:text-sm text-neutral-300 leading-relaxed font-sans max-w-2xl">
+                    Retro 2D arcade fighting game featuring 29 caricature combatants across 3 factions, dynamic screen shake combat feedback, customizable character voice lines, enhanced ultimate special effects, dynamic arenas, and touch Joy-Con controls.
+                  </p>
+                  <div className="flex flex-wrap gap-1.5 pt-1 font-mono text-[10px]">
+                    <span className="px-2 py-0.5 rounded bg-black/60 border border-[var(--g-border)] text-[var(--g-offwhite)]">
+                      🎮 29 Combatants
+                    </span>
+                    <span className="px-2 py-0.5 rounded bg-black/60 border border-[var(--g-border)] text-[var(--g-offwhite)]">
+                      ⚡ Screen Shake FX
+                    </span>
+                    <span className="px-2 py-0.5 rounded bg-black/60 border border-[var(--g-border)] text-[var(--g-offwhite)]">
+                      🔊 Custom Voice Audio
+                    </span>
+                    <span className="px-2 py-0.5 rounded bg-black/60 border border-[var(--g-border)] text-[var(--g-offwhite)]">
+                      🕹️ Touch Joy-Con Controls
+                    </span>
+                  </div>
+                </div>
+
+                <div className="lg:col-span-4 flex flex-col gap-2.5">
+                  <a
+                    href="https://xom669.in/modilinifight"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-green-glass btn-highlight py-3 px-5 text-center text-xs font-black uppercase tracking-wider rounded-lg shadow-lg flex items-center justify-center gap-2 hover:scale-[1.02] transition-transform text-decoration-none"
+                  >
+                    <span>PLAY MODILINI FIGHT</span>
+                    <span className="text-sm">↗</span>
+                  </a>
+                  <a
+                    href="https://github.com/xom669/MODILINI-FIGHT"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2.5 rounded-lg bg-[var(--g-void)] border border-[var(--g-border)] hover:border-[var(--g-emerald)] text-neutral-300 hover:text-white font-mono text-xs text-center transition-colors flex items-center justify-center gap-2 text-decoration-none"
+                  >
+                    <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                      <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
+                    </svg>
+                    <span>GITHUB REPOSITORY</span>
+                    <span className="text-xs">↗</span>
+                  </a>
+                  <span className="text-center font-mono text-[9px] text-[var(--g-muted)]">
+                    REDIRECTS TO // xom669.in/modilinifight
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
           {/* LEFT: VERTICAL MENU OF 4 ARCHITECTURAL PAGES */}

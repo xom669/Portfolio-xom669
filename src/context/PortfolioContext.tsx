@@ -85,12 +85,12 @@ const DEFAULT_PROJECTS: ProjectItem[] = [
   {
     id: 'p-fight',
     title: 'Modilini Fight • 2D Arcade PVP Combat',
-    category: 'code',
+    category: 'games',
     desc: 'Retro 2D arcade fighting game featuring 29 caricature combatants across 3 factions, dynamic screen shake combat feedback, customizable character voice lines, enhanced ultimate FX, and Nintendo Joy-Con touch deck controls.',
     tags: ['React 19', 'TypeScript', 'HTML5 Canvas', 'Tailwind CSS', 'Web Audio API', 'v1.2 Latest'],
     githubUrl: 'https://github.com/xom669/MODILINI-FIGHT',
     liveUrl: 'https://xom669.in/modilinifight',
-    badge: 'LATEST BUILD'
+    badge: 'RUNNING GAME'
   },
   {
     id: 'p-1',
@@ -405,8 +405,31 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
     });
   }
 
+  function mergeDefaultProjects(loaded: ProjectItem[]): ProjectItem[] {
+    if (!Array.isArray(loaded)) return DEFAULT_PROJECTS;
+    const merged = [...loaded];
+    DEFAULT_PROJECTS.forEach((def) => {
+      const idx = merged.findIndex((p) => p.id === def.id || (p.title && p.title.toLowerCase().includes('modilini')));
+      if (idx === -1) {
+        merged.unshift(def);
+      } else {
+        merged[idx] = {
+          ...merged[idx],
+          title: def.title,
+          category: def.category,
+          desc: def.desc,
+          tags: def.tags,
+          githubUrl: def.githubUrl,
+          liveUrl: def.liveUrl,
+          badge: def.badge
+        };
+      }
+    });
+    return merged;
+  }
+
   const [projects, setProjects] = useState<ProjectItem[]>(() =>
-    loadStorage('xom669_projects', DEFAULT_PROJECTS)
+    mergeDefaultProjects(loadStorage('xom669_projects', DEFAULT_PROJECTS))
   );
   const [materials, setMaterials] = useState<MaterialItem[]>(() =>
     purgePlaceholderMaterials(loadStorage('xom669_materials', DEFAULT_MATERIALS))
@@ -475,7 +498,7 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
         if (cloud && isMounted) {
           if (cloud.profile) {
             setProfile((prev) => ({ ...prev, ...cloud.profile }));
-            if (Array.isArray(cloud.projects)) setProjects(cloud.projects);
+            if (Array.isArray(cloud.projects)) setProjects(mergeDefaultProjects(cloud.projects));
             if (Array.isArray(cloud.materials)) setMaterials(purgePlaceholderMaterials(cloud.materials));
             if (cloud.portalConfig) setPortalConfig((prev) => ({ ...prev, ...cloud.portalConfig }));
             if (Array.isArray(cloud.blogPosts)) setBlogPosts(cloud.blogPosts);
@@ -528,7 +551,7 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
         fetchFromCloud().then((cloud) => {
           if (cloud?.profile && isMounted) {
             setProfile((prev) => ({ ...prev, ...cloud.profile }));
-            if (Array.isArray(cloud.projects)) setProjects(cloud.projects);
+            if (Array.isArray(cloud.projects)) setProjects(mergeDefaultProjects(cloud.projects));
             if (Array.isArray(cloud.materials)) setMaterials(purgePlaceholderMaterials(cloud.materials));
             if (cloud.portalConfig) setPortalConfig((prev) => ({ ...prev, ...cloud.portalConfig }));
             if (Array.isArray(cloud.blogPosts)) setBlogPosts(cloud.blogPosts);
@@ -594,7 +617,7 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
       const cloud = await fetchFromCloud();
       if (cloud) {
         if (cloud.profile) setProfile((prev) => ({ ...prev, ...cloud.profile }));
-        if (Array.isArray(cloud.projects)) setProjects(cloud.projects);
+        if (Array.isArray(cloud.projects)) setProjects(mergeDefaultProjects(cloud.projects));
         if (Array.isArray(cloud.materials)) setMaterials(purgePlaceholderMaterials(cloud.materials));
         if (cloud.portalConfig) setPortalConfig((prev) => ({ ...prev, ...cloud.portalConfig }));
         if (Array.isArray(cloud.blogPosts)) setBlogPosts(cloud.blogPosts);
@@ -906,7 +929,7 @@ END:VCARD`;
       const data = JSON.parse(dataJson);
       if (data && typeof data === 'object') {
         if (data.profile) setProfile(data.profile);
-        if (Array.isArray(data.projects)) setProjects(data.projects);
+        if (Array.isArray(data.projects)) setProjects(mergeDefaultProjects(data.projects));
         if (Array.isArray(data.materials)) setMaterials(purgePlaceholderMaterials(data.materials));
         if (data.portalConfig) setPortalConfig((prev) => ({ ...prev, ...data.portalConfig }));
         if (Array.isArray(data.blogPosts)) setBlogPosts(data.blogPosts);

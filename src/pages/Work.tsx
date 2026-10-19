@@ -8,6 +8,7 @@ export default function Work() {
 
   const categories = [
     { key: 'all', label: 'ALL WORK & COMMISSIONS' },
+    { key: 'games', label: '🎮 RUNNING APPS & GAMES' },
     { key: 'systems', label: 'SYSTEMS & OS BUILDS' },
     { key: 'branding', label: 'BRANDING & BROCHURES' },
     { key: 'code', label: 'WEB CODE & HUBS' },
@@ -149,7 +150,7 @@ export default function Work() {
                       rel="noopener noreferrer"
                       className="unit-action-btn"
                     >
-                      <span>CODE</span> ↗
+                      <span>{item.category === 'games' ? 'REPO' : 'CODE'}</span> ↗
                     </a>
                   )}
                   {item.liveUrl && (
@@ -159,7 +160,7 @@ export default function Work() {
                       rel="noopener noreferrer"
                       className="unit-action-btn bg-[var(--g-emerald)] text-[var(--g-void)] font-black hover:bg-white"
                     >
-                      <span>LIVE</span> ↗
+                      <span>{item.category === 'games' ? 'PLAY GAME' : 'LIVE'}</span> ↗
                     </a>
                   )}
                 </div>
