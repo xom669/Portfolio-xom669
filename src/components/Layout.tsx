@@ -59,6 +59,14 @@ export function Layout() {
                 {link.name}
               </Link>
             ))}
+            <a
+              href="/modilinifight"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[var(--g-neon-flash)] hover:text-white transition-all duration-150 hover:scale-110 hover:skew-x-2 hover:drop-shadow-[0_0_10px_rgba(0,255,163,0.8)]"
+            >
+              Modilini Fight ↗
+            </a>
           </nav>
           <div className="flex items-center gap-4">
             <Link to="/admin" className="text-white hover:text-secondary hover:drop-shadow-[0_0_15px_rgba(16,185,129,0.8)] transition-all">
@@ -68,10 +76,11 @@ export function Layout() {
         </div>
         
         {/* Sub-header bar - Mobile Only */}
-        <div className="relative z-10 bg-black/40 backdrop-blur-md text-white py-2 px-8 md:hidden flex justify-center gap-8 text-xs font-black uppercase tracking-widest border-t border-white/10">
+        <div className="relative z-10 bg-black/40 backdrop-blur-md text-white py-2 px-8 md:hidden flex justify-center gap-6 text-xs font-black uppercase tracking-widest border-t border-white/10">
           <Link to="/" className="hover:text-secondary transition-all">home</Link>
           <Link to="/work" className="hover:text-secondary transition-all">works</Link>
           <Link to="/about" className="hover:text-secondary transition-all">about</Link>
+          <a href="/modilinifight" target="_blank" rel="noopener noreferrer" className="text-[var(--g-neon-flash)] hover:text-white transition-all">game</a>
         </div>
       </header>
 

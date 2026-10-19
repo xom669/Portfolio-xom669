@@ -390,8 +390,33 @@ export default function Home() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
-          {/* LEFT: VERTICAL MENU OF 3 ARCHITECTURAL PAGES */}
+          {/* LEFT: VERTICAL MENU OF 4 ARCHITECTURAL PAGES */}
           <div className="lg:col-span-5 flex flex-col gap-3">
+            {/* PORTAL 0: RUNNING APPS & GAMES (MODILINI FIGHT) */}
+            <a
+              href="/modilinifight"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group p-4 sm:p-5 rounded-lg bg-[var(--g-frame)] border border-[var(--g-border-solid)] hover:border-[var(--g-emerald)] transition-all flex flex-col justify-between text-decoration-none shadow-md hover:-translate-y-0.5"
+            >
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="unit-badge-tag text-[9px] bg-emerald-500/10 text-[var(--g-neon-flash)] border border-[var(--g-emerald)]">
+                    RUNNING APPS & GAMES
+                  </span>
+                  <span className="text-xs font-mono text-[var(--g-emerald)] group-hover:translate-x-1 transition-transform">
+                    PLAY NOW →
+                  </span>
+                </div>
+                <h3 className="font-display text-lg sm:text-xl font-black text-white group-hover:text-[var(--g-neon-flash)] transition-colors">
+                  Modilini Fight ↗
+                </h3>
+                <p className="text-xs text-[var(--g-muted)] leading-relaxed">
+                  Fast-paced 2D arcade combat & PVP fighting game with dynamic arenas, screen shake & custom voices.
+                </p>
+              </div>
+            </a>
+
             {/* PORTAL 1: WORK & PROJECTS */}
             <Link
               to="/work"
